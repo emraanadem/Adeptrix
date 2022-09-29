@@ -1,4 +1,5 @@
 import math
+import chardet
 import json
 import matplotlib.pyplot as plot
 import csv
@@ -36,49 +37,50 @@ class Adeptrix:
         directory = './Radx_data_8_24/Background'
         for filename in os.listdir(directory):
             f = os.path.join(directory, filename)
-            rowcount = 0
-            data = []
-            with open(f, 'r' ) as adep:
-                datas = list(csv.reader(adep, delimiter = ' '))
-                for row in datas:
-                    row[0] = float(row[0])
-                    row[1] = int(row[1])
-                    data.append(row)
-                    Adeptrix.negdata.append(row)
-                    Adeptrix.rawdata = data
-                    rowcount += 1
-            rowcount2 = int(rowcount/2000 + 1)
-            intensities = []
-            for row in Adeptrix.rawdata:
-                intensities.append(int(row[1]))
-            Adeptrix.maxintens = max(intensities)
-            numthree = 0
-            for num in range(0, rowcount2):
+            if f.endswith(".txt"):
+                rowcount = 0
                 data = []
-                for numtwo in range(0, 2000):
-                    if(numthree < rowcount):
-                        data.append([float(datas[numthree][0]), int(datas[numthree][1])])
-                        numthree += 1
-                t = threading.Thread(target=Adeptrix.controllarge, args = [data]).start()
-            for t in threading.enumerate():
-                if t != threading.enumerate()[0]:
-                    t.join()
-            Adeptrix.allpeaks.sort()
-            templist = []
-            for peak in Adeptrix.allpeaks:
-                if peak not in templist:
-                    templist.append(peak)
-            templist.sort()
-            Adeptrix.negpeaks.extend(templist)
-            Adeptrix.datamini = []
-            Adeptrix.peaks = []
-            Adeptrix.rawdata = []
-            Adeptrix.gendata = []
-            Adeptrix.maxintens = 0
-            Adeptrix.allpeaks = []
-            Adeptrix.filteredpeaks = []     
-            Adeptrix.finalallpeaks = []
-            Adeptrix.removepeaks = [] 
+                with open(f, 'r') as adep:
+                    datas = list(csv.reader(adep, delimiter = ' '))
+                    for row in datas:
+                        row[0] = float(row[0])
+                        row[1] = int(row[1])
+                        data.append(row)
+                        Adeptrix.negdata.append(row)
+                        Adeptrix.rawdata = data
+                        rowcount += 1
+                rowcount2 = int(rowcount/2000 + 1)
+                intensities = []
+                for row in Adeptrix.rawdata:
+                    intensities.append(int(row[1]))
+                Adeptrix.maxintens = max(intensities)
+                numthree = 0
+                for num in range(0, rowcount2):
+                    data = []
+                    for numtwo in range(0, 2000):
+                        if(numthree < rowcount):
+                            data.append([float(datas[numthree][0]), int(datas[numthree][1])])
+                            numthree += 1
+                    t = threading.Thread(target=Adeptrix.controllarge, args = [data]).start()
+                for t in threading.enumerate():
+                    if t != threading.enumerate()[0]:
+                        t.join()
+                Adeptrix.allpeaks.sort()
+                templist = []
+                for peak in Adeptrix.allpeaks:
+                    if peak not in templist:
+                        templist.append(peak)
+                templist.sort()
+                Adeptrix.negpeaks.extend(templist)
+                Adeptrix.datamini = []
+                Adeptrix.peaks = []
+                Adeptrix.rawdata = []
+                Adeptrix.gendata = []
+                Adeptrix.maxintens = 0
+                Adeptrix.allpeaks = []
+                Adeptrix.filteredpeaks = []     
+                Adeptrix.finalallpeaks = []
+                Adeptrix.removepeaks = [] 
         Adeptrix.negpeaks.sort()
         templist = []
         for peak in Adeptrix.negpeaks:
@@ -94,8 +96,12 @@ class Adeptrix:
         for info in Adeptrix.allpeaks:
             for peak in Adeptrix.negpeaks:
                 if(abs(info[0] - peak[0]) <= window):
-                    if((((int(peak[1]))/int(info[1])) >= .3)):
-                        Adeptrix.removepeaks.append(peak)
+                    if((((int(peak[1]))/int(info[1])) >= .33333333333)):
+                        Adeptrix.removepeaks.append(info)
+            for peak in Adeptrix.negdata:
+                if(abs(info[0] - peak[0]) <= window):
+                    if((((int(peak[1]))/int(info[1])) >= .33333333333)):
+                        Adeptrix.removepeaks.append(info)
         Adeptrix.finalallpeaks = []
         for peak in Adeptrix.allpeaks:
             if peak not in Adeptrix.removepeaks:
@@ -108,7 +114,7 @@ class Adeptrix:
         for filename in os.listdir(directory):
             f = os.path.join(directory, filename)
             directories = f
-            if filename == 'Mutant1' or filename == 'Mutant1' or filename == 'Mutant1':
+            if filename == 'Sample Stuff':
                 for filenames in os.listdir(directories):
                     q = os.path.join(directories, filenames)
                     Adeptrix.filepathh = q

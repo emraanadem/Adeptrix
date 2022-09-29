@@ -29,6 +29,7 @@ class Adeptrix:
     removepeaks = []
     negdata = []
     filepathh = ''
+    possrempeaks = []
 
     @staticmethod
     def negcontrolfilter():
@@ -37,49 +38,50 @@ class Adeptrix:
         directory = './Radx_data_8_24/Background'
         for filename in os.listdir(directory):
             f = os.path.join(directory, filename)
-            rowcount = 0
-            data = []
-            with open(f, 'r' ) as adep:
-                datas = list(csv.reader(adep, delimiter = ' '))
-                for row in datas:
-                    row[0] = float(row[0])
-                    row[1] = int(row[1])
-                    data.append(row)
-                    Adeptrix.negdata.append(row)
-                    Adeptrix.rawdata = data
-                    rowcount += 1
-            rowcount2 = int(rowcount/2000 + 1)
-            intensities = []
-            for row in Adeptrix.rawdata:
-                intensities.append(int(row[1]))
-            Adeptrix.maxintens = max(intensities)
-            numthree = 0
-            for num in range(0, rowcount2):
+            if f.endswith(".txt"):
+                rowcount = 0
                 data = []
-                for numtwo in range(0, 2000):
-                    if(numthree < rowcount):
-                        data.append([float(datas[numthree][0]), int(datas[numthree][1])])
-                        numthree += 1
-                t = threading.Thread(target=Adeptrix.controllarge, args = [data]).start()
-            for t in threading.enumerate():
-                if t != threading.enumerate()[0]:
-                    t.join()
-            Adeptrix.allpeaks.sort()
-            templist = []
-            for peak in Adeptrix.allpeaks:
-                if peak not in templist:
-                    templist.append(peak)
-            templist.sort()
-            Adeptrix.negpeaks.extend(templist)
-            Adeptrix.datamini = []
-            Adeptrix.peaks = []
-            Adeptrix.rawdata = []
-            Adeptrix.gendata = []
-            Adeptrix.maxintens = 0
-            Adeptrix.allpeaks = []
-            Adeptrix.filteredpeaks = []     
-            Adeptrix.finalallpeaks = []
-            Adeptrix.removepeaks = [] 
+                with open(f, 'r' ) as adep:
+                    datas = list(csv.reader(adep, delimiter = ' '))
+                    for row in datas:
+                        row[0] = float(row[0])
+                        row[1] = int(row[1])
+                        data.append(row)
+                        Adeptrix.negdata.append(row)
+                        Adeptrix.rawdata = data
+                        rowcount += 1
+                rowcount2 = int(rowcount/2000 + 1)
+                intensities = []
+                for row in Adeptrix.rawdata:
+                    intensities.append(int(row[1]))
+                Adeptrix.maxintens = max(intensities)
+                numthree = 0
+                for num in range(0, rowcount2):
+                    data = []
+                    for numtwo in range(0, 2000):
+                        if(numthree < rowcount):
+                            data.append([float(datas[numthree][0]), int(datas[numthree][1])])
+                            numthree += 1
+                    t = threading.Thread(target=Adeptrix.controllarge, args = [data]).start()
+                for t in threading.enumerate():
+                    if t != threading.enumerate()[0]:
+                        t.join()
+                Adeptrix.allpeaks.sort()
+                templist = []
+                for peak in Adeptrix.allpeaks:
+                    if peak not in templist:
+                        templist.append(peak)
+                templist.sort()
+                Adeptrix.negpeaks.extend(templist)
+                Adeptrix.datamini = []
+                Adeptrix.peaks = []
+                Adeptrix.rawdata = []
+                Adeptrix.gendata = []
+                Adeptrix.maxintens = 0
+                Adeptrix.allpeaks = []
+                Adeptrix.filteredpeaks = []     
+                Adeptrix.finalallpeaks = []
+                Adeptrix.removepeaks = [] 
         Adeptrix.negpeaks.sort()
         templist = []
         for peak in Adeptrix.negpeaks:
@@ -91,13 +93,14 @@ class Adeptrix:
     @staticmethod
     def compare():
         Adeptrix.finalallpeaks = []
-        Adeptrix.peakarea(Adeptrix.allpeaks, Adeptrix.rawdata, Adeptrix.negdata)
-        #for peak in Adeptrix.allpeaks:
-        #    for peaks in Adeptrix.negpeaks:
-        #        if abs(peak[0] - peaks[0]) < .5:
-        #            if peaks[1]/peak[1] >= .3:
-        #                Adeptrix.removepeaks.append(peak)
-        print(Adeptrix.removepeaks)
+        for peak in Adeptrix.allpeaks:
+            for peaks in Adeptrix.negdata:
+                if abs(peak[0] - peaks[0]) < .5:
+                    if peaks[1]/peak[1] >= .3333333333 and peaks[1]/peak[1] <= .618:
+                        Adeptrix.possrempeaks.append(peak)
+                    elif peaks[1]/peak[1] >= .333333333:
+                        Adeptrix.removepeaks.append(peak)
+        Adeptrix.peakarea(Adeptrix.possrempeaks, Adeptrix.rawdata, Adeptrix.negdata)
         for peak in Adeptrix.allpeaks:
             if peak not in Adeptrix.removepeaks:
                 Adeptrix.finalallpeaks.append(peak)
@@ -110,12 +113,20 @@ class Adeptrix:
         negdata.sort()
         Adeptrix.negpeaks.sort()
         for peak in peaks:
+            breakerpossur = False
+            breakernegsur = False
             surroundvalues = []
             surroundvalues.append(peak)
-            if((data.index(peak) > 6) and (data.index(peak) < len(data)-7)):
-                for num in range(1, 7):
-                    surroundvalues.append(data[data.index(peak)+num])
-                    surroundvalues.append(data[data.index(peak)-num])
+            if((data.index(peak) > 10) and (data.index(peak) < len(data)-11)):
+                for num in range(1, 11):
+                    if((breakerpossur == False) and (data[data.index(peak)+num+1][1] > data[data.index(peak)+num][1])):
+                        breakerpossur = True
+                    if(breakerpossur == False):
+                        surroundvalues.append(data[data.index(peak)+num])
+                    if((breakernegsur == False) and (data[data.index(peak)-num-1][1] > data[data.index(peak)-num][1])):
+                        breakernegsur = True
+                    if(breakernegsur == False):
+                        surroundvalues.append(data[data.index(peak)-num])
                 surroundvalues.sort()
                 surroundx = []
                 surroundy = []
@@ -123,22 +134,39 @@ class Adeptrix:
                     surroundx.append(numb[0])
                     surroundy.append(numb[1])
                 for info in Adeptrix.negdata:
-                    if(abs(peak[0] - info[0]) < .5):
-                        negsurround = []
-                        negsurround.append(info)
-                        for numbe in range(1, 7):
-                            negsurround.append(negdata[negdata.index(info)+numbe])
-                            negsurround.append(negdata[negdata.index(info)-numbe])
-                        negsurround.sort()
-                        negsurroundx = []
-                        negsurroundy = []
-                        for numb in negsurround:
-                            negsurroundx.append(numb[0])
-                            negsurroundy.append(numb[1])
-                        peakintegral = integrate.cumulative_trapezoid(surroundy, surroundx)
-                        negintegral = integrate.cumulative_trapezoid(negsurroundy, negsurroundx)
-                        if(((negintegral[len(negintegral)-1]/peakintegral[len(peakintegral)-1]) >= .3)):
-                            Adeptrix.removepeaks.append(peak)
+                    breakerposneg = False
+                    breakernegneg = False
+                    if((negdata.index(info) > 10) and (negdata.index(info) < len(negdata)-11)):
+                        if(abs(peak[0] - info[0]) < .5):
+                            negsurround = []
+                            negsurround.append(info)
+                            for numbe in range(1, 11):
+                                if((breakerposneg == False) and (negdata[negdata.index(info)+numbe+1][1] > negdata[negdata.index(info)+numbe][1])):
+                                    breakerposneg = True
+                                if(breakerposneg == False):
+                                    negsurround.append(negdata[negdata.index(info)+numbe])
+                                if((breakernegneg == False) and (negdata[negdata.index(info)-numbe-1][1] > negdata[negdata.index(info)-numbe][1])):
+                                    breakernegneg = True
+                                if(breakernegneg == False):
+                                    negsurround.append(negdata[negdata.index(info)-numbe])
+                            negsurround.sort()
+                            negsurroundx = []
+                            negsurroundy = []
+                            for numb in negsurround:
+                                negsurroundx.append(numb[0])
+                                negsurroundy.append(numb[1])
+                            peakintegral = integrate.cumulative_trapezoid(surroundy, surroundx)
+                            negintegral = integrate.cumulative_trapezoid(negsurroundy, negsurroundx)
+                            if(len(peakintegral) < 1):
+                                Adeptrix.removepeaks.append(peak)
+                            if((len(negintegral) > 0) and (len(peakintegral) > 0)):
+                                print(peak, info)
+                                print(surroundvalues)
+                                print(peakintegral[-1])
+                                print(negsurround)
+                                print(negintegral[-1])
+                                if(((negintegral[-1]/peakintegral[-1]) >= .3)):
+                                    Adeptrix.removepeaks.append(peak)
 
     @staticmethod
     def datasplitter():
@@ -146,7 +174,7 @@ class Adeptrix:
         for filename in os.listdir(directory):
             f = os.path.join(directory, filename)
             directories = f
-            if filename == 'Mutant1':
+            if filename == 'Sample Stuff':
                 for filenames in os.listdir(directories):
                     q = os.path.join(directories, filenames)
                     Adeptrix.filepathh = q
