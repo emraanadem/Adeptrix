@@ -117,13 +117,24 @@ class Adeptrix:
             breakernegsur = False
             surroundvalues = []
             surroundvalues.append(peak)
-            if((data.index(peak) > 10) and (data.index(peak) < len(data)-11)):
+            if((data.index(peak) > 15) and (data.index(peak) < len(data)-16)):
                 for num in range(1, 11):
-                    if((breakerpossur == False) and (data[data.index(peak)+num+1][1] > data[data.index(peak)+num][1])):
+                    poscount = 0
+                    negcount = 0
+                    posnum = data[data.index(peak)+num][1]
+                    negnum = data[data.index(peak)-num][1]
+                    for counter in range(1, 6):
+                        if(data[data.index(peak)+num+counter][1] > posnum):
+                            poscount += 1
+                        if(data[data.index(peak)-num-counter][1] > negnum):
+                            negcount += 1
+                        posnum = data[data.index(peak)+num+counter][1]
+                        negnum = data[data.index(peak)-num-counter][1]
+                    if((breakerpossur == False) and (poscount >= 5)):
                         breakerpossur = True
                     if(breakerpossur == False):
                         surroundvalues.append(data[data.index(peak)+num])
-                    if((breakernegsur == False) and (data[data.index(peak)-num-1][1] > data[data.index(peak)-num][1])):
+                    if((breakernegsur == False) and (negcount >= 5)):
                         breakernegsur = True
                     if(breakernegsur == False):
                         surroundvalues.append(data[data.index(peak)-num])
@@ -136,16 +147,27 @@ class Adeptrix:
                 for info in Adeptrix.negdata:
                     breakerposneg = False
                     breakernegneg = False
-                    if((negdata.index(info) > 10) and (negdata.index(info) < len(negdata)-11)):
+                    if((negdata.index(info) > 15) and (negdata.index(info) < len(negdata)-16)):
                         if(abs(peak[0] - info[0]) < .5):
                             negsurround = []
                             negsurround.append(info)
                             for numbe in range(1, 11):
-                                if((breakerposneg == False) and (negdata[negdata.index(info)+numbe+1][1] > negdata[negdata.index(info)+numbe][1])):
+                                backposcount = 0
+                                backnegcount = 0
+                                backposnum = negdata[negdata.index(info)+numbe][1]
+                                backnegnum = negdata[negdata.index(info)-numbe][1]
+                                for counterr in range(1, 6):
+                                    if(negdata[negdata.index(info)+numbe+counterr][1] > backposnum):
+                                        backposcount += 1
+                                    if(negdata[negdata.index(info)-numbe-counterr][1] > backnegnum):
+                                        backnegcount += 1
+                                    backposnum = negdata[negdata.index(info)+numbe+counterr][1]
+                                    backnegnum = negdata[negdata.index(info)-numbe-counterr][1]
+                                if((breakerposneg == False) and (backposcount >= 5)):
                                     breakerposneg = True
                                 if(breakerposneg == False):
                                     negsurround.append(negdata[negdata.index(info)+numbe])
-                                if((breakernegneg == False) and (negdata[negdata.index(info)-numbe-1][1] > negdata[negdata.index(info)-numbe][1])):
+                                if((breakernegneg == False) and (backnegcount >= 5)):
                                     breakernegneg = True
                                 if(breakernegneg == False):
                                     negsurround.append(negdata[negdata.index(info)-numbe])
@@ -160,11 +182,11 @@ class Adeptrix:
                             if(len(peakintegral) < 1):
                                 Adeptrix.removepeaks.append(peak)
                             if((len(negintegral) > 0) and (len(peakintegral) > 0)):
-                                print(peak, info)
-                                print(surroundvalues)
-                                print(peakintegral[-1])
-                                print(negsurround)
-                                print(negintegral[-1])
+                                #print(peak, info)
+                                #print(surroundvalues)
+                                #print(peakintegral[-1])
+                                #print(negsurround)
+                                #print(negintegral[-1])
                                 if(((negintegral[-1]/peakintegral[-1]) >= .3)):
                                     Adeptrix.removepeaks.append(peak)
 
@@ -254,17 +276,24 @@ class Adeptrix:
     def plot():
         plotter = figure(width = 2000, height = 1000)
         rawdata = Adeptrix.rawdata
+        negdata = Adeptrix.negdata
+        negmass = []
+        negintens = []
+        for row in negdata:
+            negmass.append(row[0])
+            negintens.append(row[1])
         masses = []
         intensities = []
         for row in rawdata:
             masses.append(row[0])
             intensities.append(row[1])
-        plotter.square(masses, intensities, size = 20, color = 'blue', alpha = .5)
-        plotter.yaxis.axis_label = 'intensity'
+        plotter.line(masses, intensities, line_width = 2, color = 'orange')
+        plotter.line(negmass, negintens, line_width = 2, color = 'gray')
+        plotter.yaxis.axis_label = 'Intensity'
         plotter.xaxis.axis_label = 'm/z'
         plotter.title = 'Intensity to Mass-Charge Ratio' + Adeptrix.filepathh
         for val in Adeptrix.finalallpeaks:
-            plotter.add_layout(Span(location = val[0], dimension = 'height', line_color = 'red', line_dash = 'dashed', line_width = 4))
+            plotter.add_layout(Span(location = val[0], dimension = 'height', line_color = 'black', line_dash = 'dashed', line_width = 1))
             plotter.add_layout(Label(x = val[0], y = 800, y_units = 'screen', text='m/z: ' + str(val[0])))
         output_file(Adeptrix.filepathh + ".html")
         show(plotter)
