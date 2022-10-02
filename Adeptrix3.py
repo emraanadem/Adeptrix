@@ -180,6 +180,9 @@ class Adeptrix:
                             peakintegral = integrate.cumulative_trapezoid(surroundy, surroundx)
                             negintegral = integrate.cumulative_trapezoid(negsurroundy, negsurroundx)
                             if(len(peakintegral) < 1):
+                                #print(peak, info)
+                                #print(surroundvalues)
+                                #print(negsurround)
                                 Adeptrix.removepeaks.append(peak)
                             if((len(negintegral) > 0) and (len(peakintegral) > 0)):
                                 #print(peak, info)
@@ -460,3 +463,7 @@ class Adeptrix:
 
 Adeptrix.negcontrolfilter()
 Adeptrix.datasplitter()
+
+
+
+# see shape of peaks, maybe change peakarea allowance from 5 points down to 3 points
