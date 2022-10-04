@@ -94,17 +94,88 @@ class Adeptrix:
     def compare():
         Adeptrix.finalallpeaks = []
         for peak in Adeptrix.allpeaks:
+            if(int(peak[1]) < 1000):
+                Adeptrix.removepeaks.append(peak)
             for peaks in Adeptrix.negdata:
                 if abs(peak[0] - peaks[0]) < .5:
-                    if peaks[1]/peak[1] >= .3333333333 and peaks[1]/peak[1] <= .618:
-                        Adeptrix.possrempeaks.append(peak)
-                    elif peaks[1]/peak[1] >= .333333333:
+                    if peaks[1]/peak[1] > .6:
                         Adeptrix.removepeaks.append(peak)
+                    elif peaks[1]/peak[1] <= .6 and peaks[1]/peak[1] >= .3:
+                        Adeptrix.possrempeaks.append(peak)
+        Adeptrix.peakrebound(Adeptrix.possrempeaks, Adeptrix.rawdata, Adeptrix.negdata)
         Adeptrix.peakarea(Adeptrix.possrempeaks, Adeptrix.rawdata, Adeptrix.negdata)
+        Adeptrix.peakrebound(Adeptrix.possrempeaks, Adeptrix.rawdata, Adeptrix.negdata)
         for peak in Adeptrix.allpeaks:
             if peak not in Adeptrix.removepeaks:
                 Adeptrix.finalallpeaks.append(peak)
         Adeptrix.finalallpeaks.sort()
+    
+    @staticmethod
+    def peakrebound(peaks, data, negdata):
+        peaks.sort()
+        data.sort()
+        negdata.sort()
+        for peak in peaks:
+            breakerpossur = False
+            breakernegsur = False
+            surroundgreater = []
+            surroundless = []
+            surroundvalues = []
+            surroundvalues.append(peak)
+            ref = peak
+            intens = []
+            if((data.index(peak) > 15) and (data.index(peak) < len(data)-16)):
+                for num in range(1, 11):
+                    poscount = 0
+                    negcount = 0
+                    posnum = data[data.index(peak)+num][1]
+                    negnum = data[data.index(peak)-num][1]
+                    for counter in range(1, 6):
+                        if(data[data.index(peak)+num+counter][1] > posnum):
+                            poscount += 1
+                        if(data[data.index(peak)-num-counter][1] > negnum):
+                            negcount += 1
+                        posnum = data[data.index(peak)+num+counter][1]
+                        negnum = data[data.index(peak)-num-counter][1]
+                    if(data[data.index(peak)+num][1] < 0):
+                        breakerpossur = True
+                    if(data[data.index(peak)-num][1] < 0):
+                        breakernegsur = True
+                    if((breakerpossur == False) and (poscount >= 5)):
+                        breakerpossur = True
+                    if(breakerpossur == False):
+                        surroundvalues.append(data[data.index(peak)+num])
+                    if((breakernegsur == False) and (negcount >= 5)):
+                        breakernegsur = True
+                    if(breakernegsur == False):
+                        surroundvalues.append(data[data.index(peak)-num])
+                for val in surroundvalues:
+                    if val[0] > peak[0]:
+                        surroundgreater.append(val)
+                    if val[0] < peak[0]:
+                        surroundless.append(val)
+                surroundvalues.sort()
+                for val in surroundvalues:
+                    intens.append(val[1])
+                distance = ref[1]-min(intens)
+                #if(peak[0] < 1997 and peak[0] > 1996):
+                #    print(min(intens))
+                #    print(peak)
+                #    print(surroundgreater)
+                #    print(surroundless)
+                #    print(distance)
+                for num in surroundless:
+                    if surroundless.index(num) < len(surroundless)-1:
+                        for numb in range(1,2):
+                            if(surroundless[surroundless.index(num)+numb][1] - num[1] >= .3*distance):
+                                Adeptrix.removepeaks.append(peak)
+                for num in surroundgreater:
+                    if surroundgreater.index(num) < len(surroundgreater)-1:
+                        for numb in range(1,2):
+                            if(surroundgreater[surroundgreater.index(num)+numb][1] - num[1] >= .3*distance):
+                                Adeptrix.removepeaks.append(peak)
+
+
 
     @staticmethod
     def peakarea(peaks, data, negdata):
@@ -130,6 +201,10 @@ class Adeptrix:
                             negcount += 1
                         posnum = data[data.index(peak)+num+counter][1]
                         negnum = data[data.index(peak)-num-counter][1]
+                    if(data[data.index(peak)+num][1] < 0):
+                        breakerpossur = True
+                    if(data[data.index(peak)-num][1] < 0):
+                        breakernegsur = True
                     if((breakerpossur == False) and (poscount >= 5)):
                         breakerpossur = True
                     if(breakerpossur == False):
@@ -163,6 +238,10 @@ class Adeptrix:
                                         backnegcount += 1
                                     backposnum = negdata[negdata.index(info)+numbe+counterr][1]
                                     backnegnum = negdata[negdata.index(info)-numbe-counterr][1]
+                                if(negdata[negdata.index(info)+numbe][1] < 0):
+                                    breakerposneg = True
+                                if(negdata[negdata.index(info)-numbe][1] < 0):
+                                    breakernegneg = True
                                 if((breakerposneg == False) and (backposcount >= 5)):
                                     breakerposneg = True
                                 if(breakerposneg == False):
@@ -184,13 +263,16 @@ class Adeptrix:
                                 #print(surroundvalues)
                                 #print(negsurround)
                                 Adeptrix.removepeaks.append(peak)
+                            if(int(peak[1]) < 1000):
+                                Adeptrix.removepeaks.append(peak)
                             if((len(negintegral) > 0) and (len(peakintegral) > 0)):
                                 #print(peak, info)
                                 #print(surroundvalues)
                                 #print(peakintegral[-1])
                                 #print(negsurround)
                                 #print(negintegral[-1])
-                                if(((negintegral[-1]/peakintegral[-1]) >= .3)):
+                                #print(((negintegral[-1]/peakintegral[-1]) >= .3))
+                                if(abs(((negintegral[-1]/peakintegral[-1]) >= .3))):
                                     Adeptrix.removepeaks.append(peak)
 
     @staticmethod
@@ -234,7 +316,6 @@ class Adeptrix:
                                 templist.append(peak)
                         templist.sort()
                         Adeptrix.allpeaks = templist
-                        Adeptrix.datafitter()
                         Adeptrix.compare()
                         dict = {}
                         dict['Peaks for ' + filenames] = []
@@ -309,32 +390,57 @@ class Adeptrix:
 
     @staticmethod
     def datafitter():
-        peaks = Adeptrix.peaks
+        peaks = Adeptrix.allpeaks
         for stuff in peaks:
             Adeptrix.datafitone(stuff)
 
     @staticmethod
     def datafitone(point):
         data = Adeptrix.rawdata
+        negdata = Adeptrix.negdata
         indexx = data.index(point)
         more_index = []
         less_index = []
-        if indexx < len(data) - 50:
-            for num in range(0, 50):
-                more_index.append(data[indexx+num])
-                less_index.append(data[indexx-num])
+        negmore = []
+        negless = []
+        if indexx < len(data) - 11:
+            for neg in negdata:
+                if abs(neg[0] - point[0]) < .5:
+                    for num in range(0, 10):
+                        more_index.append(data[indexx+num])
+                        less_index.append(data[indexx-num])
+                        negmore.append(negdata[negdata.index(neg)+num])
+                        negless.append(negdata[negdata.index(neg)-num])
             less_index.extend(more_index)
             less_index.sort()
+            negless.extend(negmore)
+            negless.sort()
+            negmass = []
+            negintens = []
             masses = []
             intensities = []
             for val in less_index:
                 masses.append(val[0])
                 intensities.append(val[1])
-            curve = poly1d(polyfit(masses, intensities, 3))
+            curve = poly1d(polyfit(masses, intensities, 2))
             rscore = r2_score(intensities, curve(masses))
-            if(rscore > .8):
+            for vals in negless:
+                negmass.append(vals[0])
+                negintens.append(vals[1])
+            negcurves = []
+            for nums in range(2, 4):
+                negcurve = poly1d(polyfit(negmass, negintens, nums))
+                negrscore = r2_score(negintens, negcurve(negmass))
+                negcurves.append([negcurve, negrscore])
+            scorecount = 0
+            for item in negcurves:
+                if(item[1] > .8):
+                    scorecount += 1
+            if scorecount == 0:
+                Adeptrix.removepeaks.append(point)
+            if(rscore < .8):
                 try:
-                    Adeptrix.peaks.remove(point)
+                    Adeptrix.removepeaks.append(point)
                 except:
                     print("peak already removed")            
 
@@ -411,47 +517,17 @@ class Adeptrix:
             for rows in range(0, len(maindata)):
                 if(rows > 10 and rows < len(maindata)-11):
                     if(data[row][0] == maindata[rows][0]):
-                        for counting in range(1, 11):
+                        for counting in range(1, 6):
                             if(int(maindata[rows][1]) > int(maindata[rows+counting][1])):
                                 pos_count += 1
-                            if(int(maindata[rows][1]) < int(maindata[rows-counting][1])):
+                            if(int(maindata[rows][1]) > int(maindata[rows-counting][1])):
                                 neg_count += 1
                         if(pos_count + neg_count >= 10):
                             newpeaks.append(data[row])
         newpeaks.sort()
         peaktransfer = newpeaks
-        pointer = 0
-        oldindex = 0
-        listcounter = 0
-        listlength = 0
-        for index in range(0, len(peaktransfer)):
-            for index in range(0, len(newpeaks)-1):
-                if(pointer < len(newpeaks)-1):
-                    if((int(newpeaks[pointer+1][1]) - int(newpeaks[pointer][1])) > 300):
-                        newlist = newpeaks[oldindex:pointer+1]
-                        peakintensities = []
-                        for val in newlist:
-                            peakintensities.append(val[1])
-                        peakintensities.sort()
-                        last = max(peakintensities)
-                        for val in newlist:
-                            if(int(val[1]) == last):
-                                finalpeaks.append(val)
-                        oldindex = pointer
-                        listlength += len(newlist)
-                        newlist = []
-                    listcounter += 1
-                    pointer += 1
-        if(listlength < len(newpeaks)):
-            newlist = newpeaks[oldindex:len(newpeaks)]
-            peakintensities = []
-            for val in newlist:
-                peakintensities.append(val[1])
-            peakintensities.sort()
-            last = max(peakintensities)
-            for val in newlist:
-                if(int(val[1]) == last):
-                    finalpeaks.append(val)
+        for item in peaktransfer:
+            finalpeaks.append(item)
         peaks = False
         if len(finalpeaks) > 0:
             peaks = True
@@ -466,4 +542,5 @@ Adeptrix.datasplitter()
 
 
 
-# see shape of peaks, maybe change peakarea allowance from 5 points down to 3 points
+# make cut off variable for lowest intensity of peak to detect based on user input
+# make cut off variable for lowest mass ratio to detect based on user input
