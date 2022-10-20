@@ -101,6 +101,7 @@ class Adeptrix:
                 for row in data2:
                     filewriter.write(str(row[0]) + ' ' + str(row[1]) + '\n')
             datastoanalyze.append(file + 'edited.txt')
+        datastoanalyze = list(dict.fromkeys(datastoanalyze))
         for file in datastoanalyze:
             Adeptrix.datafile = file
             Adeptrix.negcontrolfilter()
@@ -116,7 +117,7 @@ class Adeptrix:
             datas = list(csv.reader(adep, delimiter = ' '))
             for row in datas:
                 row[0] = float(row[0])
-                row[1] = float(row[1])
+                row[1] = int(float(row[1]))
                 data.append(row)
                 Adeptrix.negdata.append(row)
                 Adeptrix.rawdata = data
@@ -733,6 +734,11 @@ class Adeptrix:
                 print('No Peaks have been found.')
         Adeptrix.plot()
         Adeptrix.datamini = []
+        Adeptrix.rawdata = []
+        Adeptrix.red = []
+        Adeptrix.orange = []
+        Adeptrix.finalclearpeaks = []
+        Adeptrix.possrempeaks = []
         Adeptrix.peaks = []
         Adeptrix.gendata = []
         Adeptrix.maxintens = 0
@@ -749,7 +755,7 @@ class Adeptrix:
             datas = csv.reader(adep, delimiter = ' ')
             for row in datas:
                 row[0] = float(row[0])
-                row[1] = float(row[1])
+                row[1] = int(float(row[1]))
                 data.append(row)
         Adeptrix.rawdata = data
         return data
