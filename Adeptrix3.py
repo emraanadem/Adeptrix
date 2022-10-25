@@ -4,6 +4,9 @@ import json
 from tkinter import Canvas, PhotoImage
 import csv
 import time
+from rpy2.robjects.packages import importr
+import rpy2.robjects.packages as rpackages
+from rpy2 import robjects
 import pandas
 import zlib
 import sys
@@ -43,68 +46,54 @@ class Adeptrix:
     alignmentfile = ''
 
     @staticmethod
-    def alignment():
-        maxintens = 0
-        maxintensxval = 0
-        adjustment = 0
-        found = False
-        data = []
-        Adeptrix.datafiles = list(dict.fromkeys(Adeptrix.datafiles))
-        for file in Adeptrix.datafiles:
+    def importer():
+        filelisttwo = []
+        masses = []
+        intens = []
+        robjects.r('library(MALDIquant)')
+        robjects.r('library(readBrukerFlexData)')
+        robjects.r("peaks <- readBrukerFlexDir('" + Adeptrix.negcontrolfile + "', removeCalibrationScans = FALSE, verbose = TRUE, useSpectraNames = FALSE)")
+        robjects.r("masses <- peaks[[1]]$spectrum$mass")
+        robjects.r("intensities <- peaks[[1]]$spectrum$intensity")
+        robjects.r('library(MALDIquantForeign)')
+        robjects.r("peaks <- importBrukerFlex('"+ Adeptrix.negcontrolfile + "')")
+        robjects.r('peaks <- alignSpectra(peaks)')
+        robjects.r("bSnip <- removeBaseline(peaks, method='TopHat')")
+        #robjects.r("bSnip <- alignSpectra(bSnip, halfWindowSize = 20, SNR = 2, tolerance = .002, warpingMethod = 'lowess'")
+        robjects.r("setClass('spec', slots = c(x='numeric', y='numeric'))")
+        robjects.r("myspec <- new('spec', x = (bSnip[[1]]@mass), y = (bSnip[[1]]@intensity))")
+        robjects.r('str(myspec)')
+        robjects.r('''S4_to_dataframe <- function(s4obj) {nms <- slotNames(s4obj)
+        lst <- lapply(nms, function(nm) slot(s4obj, nm))
+        as.data.frame(setNames(lst, nms))}''')
+        robjects.r("myspec <- S4_to_dataframe(myspec)")
+        robjects.r("write.table(myspec, file = '" + Adeptrix.negcontrolfile + ".txt" +"', sep = ' ', row.names = FALSE, col.names = FALSE)")
+        Adeptrix.negcontrolfile = str(Adeptrix.negcontrolfile) + ".txt"
+        Adeptrix.negcontrolfilter()
+        for folders in Adeptrix.datafiles:
             intens = []
-            with open(file, 'r' ) as adep:
-                datas = list(csv.reader(adep, delimiter = ' '))
-                for row in datas:
-                    row[0] = float(row[0])
-                    row[1] = float(row[1])
-                    intens.append(row[1])
-                    data.append(row)
-        maxintens = max(intens)
-        for row in data:
-            if maxintens in row:
-                maxintensxval = row[0]
-        for file in Adeptrix.datafiles:
-            with open(file, 'r' ) as adep:
-                datas = list(csv.reader(adep, delimiter = ' '))
-                for row in datas:
-                    row[0] = float(row[0])
-                    row[1] = float(row[1])
-                    if maxintens == row[1]:
-                        Adeptrix.alignmentfile = file
-                        found = True
-                        break
-            if found == True:
-                break
-        datastoanalyze = []
-        for file in Adeptrix.datafiles:
-            data2 = []
-            with open(file, 'r' ) as adep:
-                datas = list(csv.reader(adep, delimiter = ' '))
-                for row in datas:
-                    row[0] = float(row[0])
-                    row[1] = float(row[1])
-                    data2.append(row)
-            adep.close()
-            diff = []
-            for row in data2:
-                diff.append([abs(row[0] - maxintensxval), row[0], maxintensxval])
-            adjustment = min(diff)[0]
-            if(min(diff)[2] > min(diff)[1]):
-                adjustment = min(diff)[0]
-            elif(min(diff)[2] < min(diff)[1]):
-                adjustment = -min(diff)[0]
-            else:
-                adjustment = 0
-            for row in data2:
-                row[0] = row[0] + adjustment
-            with open (file + "edited.txt", 'w+') as filewriter:
-                for row in data2:
-                    filewriter.write(str(row[0]) + ' ' + str(row[1]) + '\n')
-            datastoanalyze.append(file + 'edited.txt')
-        datastoanalyze = list(dict.fromkeys(datastoanalyze))
-        for file in datastoanalyze:
-            Adeptrix.datafile = file
-            Adeptrix.negcontrolfilter()
+            masses = []
+            robjects.r("peaks <- readBrukerFlexDir('" + str(folders) + "', removeCalibrationScans = FALSE, verbose = TRUE, useSpectraNames = FALSE)")
+            robjects.r("masses <- peaks[[1]]$spectrum$mass")
+            robjects.r("intensities <- peaks[[1]]$spectrum$intensity")
+            robjects.r('library(MALDIquantForeign)')
+            robjects.r("peaks <- importBrukerFlex('"+ str(folders) + "')")
+            robjects.r('peaks <- alignSpectra(peaks)')
+            robjects.r("bSnip <- removeBaseline(peaks, method='TopHat')")
+            #robjects.r("bSnip <- alignSpectra(bSnip, halfWindowSize = 20, SNR = 2, tolerance = .002, warpingMethod = 'lowess'")
+            robjects.r("setClass('spec', slots = c(x='numeric', y='numeric'))")
+            robjects.r("myspec <- new('spec', x = (bSnip[[1]]@mass), y = (bSnip[[1]]@intensity))")
+            robjects.r('str(myspec)')
+            robjects.r('''S4_to_dataframe <- function(s4obj) {nms <- slotNames(s4obj)
+            lst <- lapply(nms, function(nm) slot(s4obj, nm))
+            as.data.frame(setNames(lst, nms))}''')
+            robjects.r("myspec <- S4_to_dataframe(myspec)")
+            robjects.r("write.table(myspec, file = '" + str(folders) + ".txt" +"', sep = ' ', row.names = FALSE, col.names = FALSE)")
+            Adeptrix.datafile = str(folders) + '.txt'
+            filelisttwo.append(Adeptrix.datafile)
+        Adeptrix.datafiles = filelisttwo
+        for item in Adeptrix.datafiles:
+            Adeptrix.datafile = item
             Adeptrix.datasplitter()
 
     @staticmethod
@@ -166,8 +155,6 @@ class Adeptrix:
     def compare():
         Adeptrix.finalallpeaks = []
         for peak in Adeptrix.allpeaks:
-            if(int(peak[1]) < 1000):
-                Adeptrix.removepeaks.append(peak)
             for peaks in Adeptrix.negdata:
                 if abs(peak[0] - peaks[0]) < .5:
                     if peaks[1]/peak[1] > .6:
@@ -225,6 +212,34 @@ class Adeptrix:
             if thread != threading.enumerate()[0]:
                 thread.join()
         for peak in Adeptrix.allpeaks:
+            for peaks in Adeptrix.allpeaks:
+                if peak[0] == peaks[0]:
+                    if len(peak) < len(peaks):
+                        Adeptrix.removepeaks.append(peak)
+                    if len(peaks) < len(peak):
+                        Adeptrix.removepeaks.append(peaks)
+        for peak in Adeptrix.ratios:
+            for peaks in Adeptrix.ratios:
+                if peak[0] == peaks[0]:
+                    if len(peak) < len(peaks):
+                        Adeptrix.removepeaks.append(peak)
+                    if len(peaks) < len(peak):
+                        Adeptrix.removepeaks.append(peaks)
+        for peak in Adeptrix.orange:
+            for peaks in Adeptrix.orange:
+                if peak[0] == peaks[0]:
+                    if len(peak) < len(peaks):
+                        Adeptrix.removepeaks.append(peak)
+                    if len(peaks) < len(peak):
+                        Adeptrix.removepeaks.append(peaks)
+        for peak in Adeptrix.red:
+            for peaks in Adeptrix.red:
+                if peak[0] == peaks[0]:
+                    if len(peak) < len(peaks):
+                        Adeptrix.removepeaks.append(peak)
+                    if len(peaks) < len(peak):
+                        Adeptrix.removepeaks.append(peaks)
+        for peak in Adeptrix.allpeaks:
             peaker = peak
             for peakss in Adeptrix.ratios:
                 if peak not in Adeptrix.orange and peak not in Adeptrix.red:
@@ -235,7 +250,6 @@ class Adeptrix:
                 if peak not in Adeptrix.orange and peak not in Adeptrix.red:
                     peaker.append('Clear Peak')
                     Adeptrix.finalclearpeaks.append(peaker)
-        Adeptrix.finalallpeaks.sort()
         Adeptrix.red = [list(t) for t in set(tuple(element) for element in Adeptrix.red)]
         Adeptrix.orange = [list(t) for t in set(tuple(element) for element in Adeptrix.orange)]
         Adeptrix.finalclearpeaks = [list(t) for t in set(tuple(element) for element in Adeptrix.finalclearpeaks)]
@@ -243,6 +257,8 @@ class Adeptrix:
         Adeptrix.red.sort()
         Adeptrix.orange.sort()
         Adeptrix.finalclearpeaks.sort()
+        Adeptrix.finalallpeaks.sort()
+        Adeptrix.allpeaks.sort()
 
     @staticmethod
     def peakrebound(peaks, data, negdata):
@@ -259,6 +275,7 @@ class Adeptrix:
                 surroundvalues.append(peak)
                 ref = peak
                 intens = []
+                peak[1] = int(peak[1])
                 if((data.index(peak[0:2]) > 15) and (data.index(peak[0:2]) < len(data)-16)):
                     for num in range(1, 11):
                         poscount = 0
@@ -299,23 +316,135 @@ class Adeptrix:
                         #print(surroundgreater)
                         #print(surroundless)
                         #print(distance)
-                    for num in surroundless:
-                        if surroundless.index(num) < len(surroundless)-1:
-                            for numb in range(1,2):
-                                if(surroundless[surroundless.index(num)+numb][1] - num[1] >= .3*distance):
-                                    Adeptrix.removepeaks.append(peak)
+                    slopegreater = []
+                    slopeless = []
                     for num in surroundgreater:
                         if surroundgreater.index(num) < len(surroundgreater)-1:
                             for numb in range(1,2):
                                 if(surroundgreater[surroundgreater.index(num)+numb][1] - num[1] >= .3*distance):
                                     Adeptrix.removepeaks.append(peak)
+                    for num in surroundless:
+                        if surroundless.index(num) < len(surroundless)-1:
+                            for numb in range(1,2):
+                                if(surroundless[surroundless.index(num)+numb][1] - num[1] >= .3*distance):
+                                    Adeptrix.removepeaks.append(peak)
 
+    @staticmethod
+    def signalnoise(peak, data):
+        data.sort()
+        if peak[0] > data[0][0] and peak[0] < data[-1][0]:
+            breakerpossur = False
+            breakernegsur = False
+            surroundgreater = []
+            surroundless = []
+            surroundvalues = []
+            surroundvalues.append(peak)
+            intens = []
+            peak[1] = int(peak[1])
+            if((data.index(peak[0:2]) > 15) and (data.index(peak[0:2]) < len(data)-16)):
+                for num in range(1, 11):
+                    poscount = 0
+                    negcount = 0
+                    posnum = data[data.index(peak[0:2])+num][1]
+                    negnum = data[data.index(peak[0:2])-num][1]
+                    for counter in range(1, Adeptrix.peakpointcount+1):
+                        if(data[data.index(peak[0:2])+num+counter][1] > posnum):
+                            poscount += 1
+                        if(data[data.index(peak[0:2])-num-counter][1] > negnum):
+                            negcount += 1
+                        posnum = data[data.index(peak[0:2])+num+counter][1]
+                        negnum = data[data.index(peak[0:2])-num-counter][1]
+                    if(data[data.index(peak[0:2])+num][1] < 0):
+                        breakerpossur = True
+                    if(data[data.index(peak[0:2])-num][1] < 0):
+                        breakernegsur = True
+                    if((breakerpossur == False) and (poscount >= 5)):
+                        breakerpossur = True
+                    if(breakerpossur == False):
+                        surroundvalues.append(data[data.index(peak[0:2])+num])
+                        if data[data.index(peak[0:2])+num] > peak[0:2]:
+                            surroundgreater.append(data[data.index(peak[0:2])+num])
+                    if((breakernegsur == False) and (negcount >= 5)):
+                        breakernegsur = True
+                    if(breakernegsur == False):
+                        surroundvalues.append(data[data.index(peak[0:2])-num])
+                        if(data[data.index(peak[0:2])-num] < peak[0:2]):
+                            surroundless.append(data[data.index(peak[0:2])-num])
+                surroundvalues.sort()
+                for val in surroundvalues:
+                    if val[0] > peak[0]:
+                        surroundgreater.append(val)
+                    if val[0] < peak[0]:
+                        surroundless.append(val)
+                for val in surroundvalues:
+                    intens.append(val[1])
+        slopegreater = []
+        surroundgreater.append(peak)
+        surroundless.append(peak)
+        for num in surroundgreater:
+            if num != surroundgreater[-1]:
+                if(surroundgreater[surroundgreater.index(num)+1][1] > 0 and num[1] > 0):
+                    slopegreater.append(num[1]/surroundgreater[surroundgreater.index(num)+1][1])
+                else:
+                    greaterrev = slopegreater
+                    greaterrev.sort()
+                    for nums in greaterrev:
+                        if nums > 0:
+                            slopegreater.append(abs(peak[1] - nums))
+                            break
+        slopeless = []
+        for num in surroundless:
+            if num != surroundless[-1]:
+                if(surroundless[surroundless.index(num)+1][1] > 0 and num[1] > 0):
+                    slopeless.append(num[1]/surroundless[surroundless.index(num)+1][1])
+                else:
+                    lessrev = slopeless
+                    lessrev.sort()
+                    for nums in lessrev:
+                        if nums > 0:
+                            slopeless.append(abs(peak[1] - nums))
+                            break
+        slopegreater.reverse()
+        slopeless.reverse()
+        negsn = 0
+        possn = 0
+        for val in slopegreater:
+            if val > 2:
+                possn = val
+                break
+        if possn == 0:
+            for val in slopegreater:
+                if val > 0:
+                    possn = abs(peak[1] - val)
+                    break
+        if possn == 0:
+            possn = peak[1]
+        for val in slopeless:
+            if val > 2:
+                negsn = val
+                break
+        if negsn == 0:
+            for val in slopeless:
+                if val > 0:
+                    negsn = abs(peak[1] - val)
+                    break
+        if negsn == 0:
+            negsn = peak[1]
+        peaker = list(peak)
+        if possn > negsn:
+            peaker.append(negsn)
+        if negsn > possn:
+            peaker.append(possn)
+        if possn == negsn:
+            peaker.append(possn)
+        return peaker
 
     @staticmethod
     def peakwidth(peaks, data):
         for peak in peaks:
             nearvals = []
             peakwratio = []
+            peak[1] = int(peak[1])
             for num in range(0,3):
                 nearvals.append(data[data.index(peak[0:2])+num])
                 nearvals.append(data[data.index(peak[0:2])-num])
@@ -342,6 +471,7 @@ class Adeptrix:
                 breakernegsur = False
                 matchfound = False
                 surroundvalues = []
+                peak[1] = int(peak[1])
                 surroundvalues.append(peak)
                 if((data.index(peak[0:2]) > 15) and (data.index(peak[0:2]) < len(data)-16)):
                     for num in range(1, 11):
@@ -422,40 +552,29 @@ class Adeptrix:
                                         if peakss[0][0] == peak[0]:
                                             for val in negintegrals:
                                                 negintegral.append(val*peakss[1])
-                                    #if((peak[0] < 1710 and peak[0] > 1709)):
-                                    #    print(peak, info)
-                                    #    print(surroundvalues)
-                                    #    print(peakintegral[-1])
-                                    #    print(negsurround)
-                                    #    print(negintegral[-1])
-                                    #    print(((negintegral[-1]/peakintegral[-1])))
                                     if(len(peakintegral) < 1):
                                         #print(peak, info)
                                         #print(surroundvalues)
                                         #print(negsurround)
                                         Adeptrix.removepeaks.append(peak)
-                                    if(float(peak[1]) < 1000):
-                                        Adeptrix.removepeaks.append(peak)
-                                    if((len(negintegral) > 0) and (len(peakintegral) > 0)):
-                                        #print(peak, info)
-                                        #print(surroundvalues)
-                                        #print(peakintegral[-1])
-                                        #print(negsurround)
-                                        #print(negintegral[-1])
-                                        #print(((negintegral[-1]/peakintegral[-1]) >= .3))
-                                        peaker = peak
-                                        if len(peaker) < 3:
-                                            peaker.append(peakintegral[-1]/negintegral[-1])
                                     elif((len(negintegral) == 0) and (len(peakintegral) > 0)):
-                                        peaker = peak
-                                        if len(peaker) < 3:
+                                        peaker = Adeptrix.signalnoise(peak, data)
+                                        if len(peaker) < 4:
                                             peaker.append('Null')
-                                            peaker.append('Highly Questionable')
-                                            Adeptrix.red.append(peak)
-                                    Adeptrix.ratios.append(peaker)
-                                    if((len(negintegral) > 0) and (len(peakintegral) > 0)):
-                                        if((peak[1] > 5000) and peak[1]/info[1] > 2.222 and (abs(((negintegral[-1]/peakintegral[-1]) < .50)) 
-                                            and abs(negintegral[-1]/peakintegral[-1] > .3))):
+                                            Adeptrix.finalclearpeaks.append(peaker)            
+                                    if(negintegral[-1] == 0 or info[1] == 0):
+                                        safe.append(peak)
+                                        peaker.append(peakintegral[-1]/negintegral[-1])     
+                                        Adeptrix.ratios.append(peaker)              
+                                        Adeptrix.finalclearpeaks.append(peaker)
+                                    elif(peakintegral[-1] == 0 or peak[1] == 0):
+                                        Adeptrix.removepeaks.append(peak)
+                                    elif((len(negintegral) > 0) and (len(peakintegral) > 0)):
+                                        peaker = Adeptrix.signalnoise(peak, data)
+                                        if len(peaker) < 4:
+                                            peaker.append(peakintegral[-1]/negintegral[-1])
+                                        if(peak[1]/info[1] > 2.222 and (abs(((negintegral[-1]/peakintegral[-1]) < .50)) 
+                                            and abs(negintegral[-1]/peakintegral[-1] > .3333333333333))):
                                             if peak not in safe:
                                                 safe.append(peak)
                                             if peakintegral[-1]/negintegral[-1] < 2.5:
@@ -469,12 +588,17 @@ class Adeptrix:
                                         elif(abs(((negintegral[-1]/peakintegral[-1]) > .3))):
                                             if peak not in safe:
                                                 Adeptrix.removepeaks.append(peak)
+                                        elif(abs(((negintegral[-1]/peakintegral[-1]) < .3))):
+                                            safe.append(peak)
+                                            peaker.append(peakintegral[-1]/negintegral[-1])     
+                                            Adeptrix.ratios.append(peaker)                                       
                                     elif((len(negintegral) > 0) and len(peakintegral) == 0):
                                         Adeptrix.removepeaks.append(peak)
                                     else:
                                         peaker.append("Null")
-                                        peaker.append('Highly Questionable')
                                         Adeptrix.red.append(peak)
+                                    Adeptrix.ratios.append(peaker)
+
 
     @staticmethod
     def peakarea(peaks, data, negdata):
@@ -494,6 +618,7 @@ class Adeptrix:
                 breakernegsur = False
                 matchfound = False
                 surroundvalues = []
+                peak[1] = int(peak[1])
                 surroundvalues.append(peak)
                 if((data.index(peak[0:2]) > 15) and (data.index(peak[0:2]) < len(data)-16)):
                     for num in range(1, 11):
@@ -574,41 +699,29 @@ class Adeptrix:
                                         if peakss[0][0] == peak[0]:
                                             for val in negintegrals:
                                                 negintegral.append(val*peakss[1])
-                                    #if((peak[0] < 1710 and peak[0] > 1709)):
-                                    #    print(peak, info)
-                                    #    print(surroundvalues)
-                                    #    print(peakintegral[-1])
-                                    #    print(negsurround)
-                                    #    print(negintegral[-1])
-                                    #    print(((negintegral[-1]/peakintegral[-1])))
                                     if(len(peakintegral) < 1):
                                         #print(peak, info)
                                         #print(surroundvalues)
                                         #print(negsurround)
                                         Adeptrix.removepeaks.append(peak)
-                                    if(float(peak[1]) < 1000):
-                                        Adeptrix.removepeaks.append(peak)
-                                    if((len(negintegral) > 0) and (len(peakintegral) > 0)):
-                                        #print(peak, info)
-                                        #print(surroundvalues)
-                                        #print(peakintegral[-1])
-                                        #print(negsurround)
-                                        #print(negintegral[-1])
-                                        #print(((negintegral[-1]/peakintegral[-1]) >= .3))
-                                        peaker = peak
-                                        if len(peaker) < 3:
-                                            peaker.append(peakintegral[-1]/negintegral[-1])
                                     if((len(negintegral) == 0) and (len(peakintegral) > 0)):
-                                        peaker = peak
-                                        if len(peaker) < 3:
+                                        peaker = Adeptrix.signalnoise(peak, data)
+                                        if len(peaker) < 4:
                                             peaker.append('Null')
-                                            peaker.append('Highly Questionable')
-                                    Adeptrix.ratios.append(peaker)
-                                    if((len(negintegral) > 0) and (len(peakintegral) > 0)):
-                                        if((peak[1] > 5000) and peak[1]/info[1] > 2.222 and (abs(((negintegral[-1]/peakintegral[-1]) < .50)) 
-                                            and abs(negintegral[-1]/peakintegral[-1] > .3))):
-                                            if peak not in safe:
-                                                safe.append(peak)
+                                            Adeptrix.finalclearpeaks.append(peaker)
+                                    if(negintegral[-1] == 0 or info[1] == 0):
+                                        safe.append(peak)
+                                        peaker.append(peakintegral[-1]/negintegral[-1])     
+                                        Adeptrix.ratios.append(peaker)              
+                                        Adeptrix.finalclearpeaks.append(peak)
+                                    elif(peakintegral[-1] == 0 or peak[1] == 0):
+                                        Adeptrix.removepeaks.append(peak)
+                                    elif((len(negintegral) > 0) and (len(peakintegral) > 0)):
+                                        peaker = Adeptrix.signalnoise(peak, data)
+                                        if len(peaker) < 4:
+                                            peaker.append(peakintegral[-1]/negintegral[-1])
+                                        if(peak[1]/info[1] > 2.222 and (abs(((negintegral[-1]/peakintegral[-1]) < .50)) 
+                                            and abs(negintegral[-1]/peakintegral[-1] > .3333333))):
                                             if peakintegral[-1]/negintegral[-1] < 2.5:
                                                 if peak not in Adeptrix.red:
                                                     peaker.append('Highly Questionable')
@@ -620,14 +733,16 @@ class Adeptrix:
                                         elif(abs(((negintegral[-1]/peakintegral[-1]) > .3))):
                                             if peak not in safe:
                                                 Adeptrix.removepeaks.append(peak)
+                                        elif(abs(((negintegral[-1]/peakintegral[-1]) < .3))):
+                                                safe.append(peak)
+                                                peaker.append(peakintegral[-1]/negintegral[-1])   
+                                                Adeptrix.ratios.append(peaker)
                                     elif((len(negintegral) > 0) and len(peakintegral) == 0):
                                         Adeptrix.removepeaks.append(peak)
                                     else:
                                         peaker.append("Null")
-                                        peaker.append('Highly Questionable')
                                         Adeptrix.red.append(peak)
-
-
+                                    Adeptrix.ratios.append(peaker)
 
 
     @staticmethod
@@ -706,11 +821,18 @@ class Adeptrix:
         newlisttot.extend(newlistclear)
         newlisttot.extend(newlistorange)
         newlisttot.extend(newlistred)
-        newlisttot.sort()
+        for peak in newlisttot:
+            for peaks in newlisttot:
+                if peak[0] == peaks[0]:
+                    if len(peak) < len(peaks):
+                        newlisttot.remove(peak)
+                    if len(peaks) < len(peak):
+                        newlisttot.remove(peaks)
+        newlisttot.sort(key=lambda x: x[0], reverse=False)
         dict5 = {}
         dict5['All Peaks'] = newlisttot
         dict6 = dict5['All Peaks']
-        cols = ['Mass/Charge Ratio', 'Intensity', 'Intensity Ratio', 'Peak Confidence']
+        cols = ['Mass/Charge Ratio', 'Intensity', 'Signal/Noise Ratio', 'Intensity Ratio', 'Peak Confidence']
         if os.path.exists("./Peak Images/" + str(Adeptrix.filename)):
             csv_file = "./Peak Images/" + str(Adeptrix.filename) + "/PeakDataTable.csv"            
         else:
@@ -766,6 +888,7 @@ class Adeptrix:
         negdatas = Adeptrix.negdata
         negpeak = []
         for peak in Adeptrix.finalallpeaks:
+            peak[1] = int(peak[1])
             if(rawdatas.index(peak[0:2]) > 24):
                 rawdata = rawdatas[rawdatas.index(peak[0:2])-25:rawdatas.index(peak[0:2])+25]
                 for info in negdatas:
@@ -833,7 +956,7 @@ class Adeptrix:
         plotter.title = 'Intensity to Mass-Charge Ratio' + Adeptrix.filename
         from bokeh.models import Label as labe
         from bokeh.models import Span as spanner
-        for peak in Adeptrix.finalallpeaks:
+        for peak in Adeptrix.finalclearpeaks:
             plotter.add_layout(spanner(location = peak[0], dimension = 'height', line_color = 'black', line_dash = 'dashed', line_width = 1))
             plotter.add_layout(labe(x = peak[0], y = 700, y_units = 'screen', text=str(peak[0]), text_font_size = '8pt'))
         for peak in Adeptrix.orange:
@@ -990,17 +1113,17 @@ class Adeptrix:
 
     @staticmethod
     def start():
-        Adeptrix.alignment()
+        Adeptrix.importer()
 
 class Gui:
     def browseFileBackground():
         from tkinter import filedialog  
-        filename = str(filedialog.askopenfilename())
+        filename = str(filedialog.askdirectory())
         Adeptrix.negcontrolfile = filename
         
     def browseFileSample():
         from tkinter import filedialog
-        filename = str(filedialog.askopenfilename())
+        filename = str(filedialog.askdirectory())
         Adeptrix.datafiles.append(filename)
 
     def begin():        
