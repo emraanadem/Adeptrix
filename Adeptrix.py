@@ -4,9 +4,6 @@ import json
 from tkinter import Canvas, PhotoImage
 import csv
 import time
-from rpy2.robjects.packages import importr
-import rpy2.robjects.packages as rpackages
-from rpy2 import robjects
 import pandas
 import zlib
 import sys
@@ -15,9 +12,13 @@ import threading
 from bokeh.plotting import *
 from bokeh.models import *
 from sklearn.metrics import *
+from sklearn.decomposition import PCA
 from numpy import poly1d
 from numpy import polyfit
+import numpy as np
 from scipy import integrate
+from scipy.stats import f_oneway, mannwhitneyu, kruskal
+import imgkit
 
 class Adeptrix:
 
@@ -47,6 +48,7 @@ class Adeptrix:
 
     @staticmethod
     def importer():
+        from rpy2 import robjects
         filelisttwo = []
         masses = []
         intens = []
@@ -126,7 +128,8 @@ class Adeptrix:
             t = threading.Thread(target=Adeptrix.controllarge, args = [data]).start()
         for t in threading.enumerate():
             if t != threading.enumerate()[0]:
-                t.join()
+                if t != threading.current_thread():
+                    t.join()
         Adeptrix.allpeaks.sort()
         templist = []
         for peak in Adeptrix.allpeaks:
@@ -178,7 +181,8 @@ class Adeptrix:
                     Adeptrix.rawdata[indexcount-50:-1], Adeptrix.negdata[indexcount:-1]]).start()
         for thread in threading.enumerate():
             if thread != threading.enumerate()[0]:
-                thread.join()
+                if thread != threading.current_thread():
+                    thread.join()
         indexcount = 0
         leftoverpeaks = []
         for peak in Adeptrix.allpeaks:
@@ -196,7 +200,8 @@ class Adeptrix:
                     Adeptrix.rawdata[indexcount-50:-1], Adeptrix.negdata[indexcount:-1]]).start()
         for thread in threading.enumerate():
             if thread != threading.enumerate()[0]:
-                thread.join()
+                if thread != threading.current_thread():
+                    thread.join()
         indexcount = 0
         for vals in range (0, iterations):
             indexcount2 = vals*2000
@@ -210,7 +215,8 @@ class Adeptrix:
                     Adeptrix.rawdata[indexcount-50:-1], Adeptrix.negdata[indexcount:-1]]).start()
         for thread in threading.enumerate():
             if thread != threading.enumerate()[0]:
-                thread.join()
+                if thread != threading.current_thread():
+                    thread.join()
         for peak in Adeptrix.allpeaks:
             for peaks in Adeptrix.allpeaks:
                 if peak[0] == peaks[0]:
@@ -239,17 +245,6 @@ class Adeptrix:
                         Adeptrix.removepeaks.append(peak)
                     if len(peaks) < len(peak):
                         Adeptrix.removepeaks.append(peaks)
-        for peak in Adeptrix.allpeaks:
-            peaker = peak
-            for peakss in Adeptrix.ratios:
-                if peak not in Adeptrix.orange and peak not in Adeptrix.red:
-                    if peakss[0] == peaker[0]:
-                        peaker.append(peakss[2])
-            if peak not in Adeptrix.removepeaks:
-                Adeptrix.finalallpeaks.append(peaker)
-                if peak not in Adeptrix.orange and peak not in Adeptrix.red:
-                    peaker.append('Clear Peak')
-                    Adeptrix.finalclearpeaks.append(peaker)
         Adeptrix.red = [list(t) for t in set(tuple(element) for element in Adeptrix.red)]
         Adeptrix.orange = [list(t) for t in set(tuple(element) for element in Adeptrix.orange)]
         Adeptrix.finalclearpeaks = [list(t) for t in set(tuple(element) for element in Adeptrix.finalclearpeaks)]
@@ -552,52 +547,34 @@ class Adeptrix:
                                         if peakss[0][0] == peak[0]:
                                             for val in negintegrals:
                                                 negintegral.append(val*peakss[1])
+                                    peaker = list(Adeptrix.signalnoise(peak, data))
+                                    peaker.append(peakintegral[-1]/negintegral[-1])
                                     if(len(peakintegral) < 1):
                                         #print(peak, info)
                                         #print(surroundvalues)
                                         #print(negsurround)
-                                        Adeptrix.removepeaks.append(peak)
-                                    elif((len(negintegral) == 0) and (len(peakintegral) > 0)):
-                                        peaker = Adeptrix.signalnoise(peak, data)
-                                        if len(peaker) < 4:
-                                            peaker.append('Null')
-                                            Adeptrix.finalclearpeaks.append(peaker)            
-                                    if(negintegral[-1] == 0 or info[1] == 0):
-                                        safe.append(peak)
-                                        peaker.append(peakintegral[-1]/negintegral[-1])     
-                                        Adeptrix.ratios.append(peaker)              
+                                        Adeptrix.removepeaks.append(peaker)
+                                    elif(len(negintegral) == 0 and len(peakintegral > 0)):
                                         Adeptrix.finalclearpeaks.append(peaker)
-                                    elif(peakintegral[-1] == 0 or peak[1] == 0):
-                                        Adeptrix.removepeaks.append(peak)
-                                    elif((len(negintegral) > 0) and (len(peakintegral) > 0)):
-                                        peaker = Adeptrix.signalnoise(peak, data)
-                                        if len(peaker) < 4:
-                                            peaker.append(peakintegral[-1]/negintegral[-1])
-                                        if(peak[1]/info[1] > 2.222 and (abs(((negintegral[-1]/peakintegral[-1]) < .50)) 
-                                            and abs(negintegral[-1]/peakintegral[-1] > .3333333333333))):
-                                            if peak not in safe:
-                                                safe.append(peak)
-                                            if peakintegral[-1]/negintegral[-1] < 2.5:
-                                                if peak not in Adeptrix.red:
-                                                    peaker.append('Highly Questionable')
-                                                    Adeptrix.red.append(peaker)
-                                            elif peakintegral[-1]/negintegral[-1] < 3:
-                                                if peak not in Adeptrix.orange:
-                                                    peaker.append('Questionable')
-                                                    Adeptrix.orange.append(peaker)
-                                        elif(abs(((negintegral[-1]/peakintegral[-1]) > .3))):
-                                            if peak not in safe:
-                                                Adeptrix.removepeaks.append(peak)
-                                        elif(abs(((negintegral[-1]/peakintegral[-1]) < .3))):
-                                            safe.append(peak)
-                                            peaker.append(peakintegral[-1]/negintegral[-1])     
-                                            Adeptrix.ratios.append(peaker)                                       
-                                    elif((len(negintegral) > 0) and len(peakintegral) == 0):
-                                        Adeptrix.removepeaks.append(peak)
-                                    else:
-                                        peaker.append("Null")
-                                        Adeptrix.red.append(peak)
-                                    Adeptrix.ratios.append(peaker)
+                                    elif(len(negintegral) > 0 and len(peakintegral) > 0):
+                                        if(info[1] != 0):
+                                            if(peak[1]/info[1] > 2.222222):
+                                                if((abs(((negintegral[-1]/peakintegral[-1]) < .50)))):
+                                                    if peakintegral[-1]/negintegral[-1] < 2.5:
+                                                        if peak not in Adeptrix.red:
+                                                            peaker.append('Highly Questionable')
+                                                            Adeptrix.red.append(peaker)
+                                                            Adeptrix.finalallpeaks.append(peaker)
+                                                    elif peakintegral[-1]/negintegral[-1] < 3:
+                                                        if peak not in Adeptrix.orange:
+                                                            peaker.append('Questionable')
+                                                            Adeptrix.orange.append(peaker)
+                                                            Adeptrix.finalallpeaks.append(peaker)
+                                                    else:
+                                                        if peak not in Adeptrix.finalclearpeaks:
+                                                            peaker.append('Clear Peak')
+                                                            Adeptrix.finalclearpeaks.append(peaker)
+                                                            Adeptrix.finalallpeaks.append(peaker)
 
 
     @staticmethod
@@ -699,50 +676,35 @@ class Adeptrix:
                                         if peakss[0][0] == peak[0]:
                                             for val in negintegrals:
                                                 negintegral.append(val*peakss[1])
+                                    peaker = list(Adeptrix.signalnoise(peak, data))
+                                    peaker.append(peakintegral[-1]/negintegral[-1])
                                     if(len(peakintegral) < 1):
                                         #print(peak, info)
                                         #print(surroundvalues)
                                         #print(negsurround)
-                                        Adeptrix.removepeaks.append(peak)
-                                    if((len(negintegral) == 0) and (len(peakintegral) > 0)):
-                                        peaker = Adeptrix.signalnoise(peak, data)
-                                        if len(peaker) < 4:
-                                            peaker.append('Null')
-                                            Adeptrix.finalclearpeaks.append(peaker)
-                                    if(negintegral[-1] == 0 or info[1] == 0):
-                                        safe.append(peak)
-                                        peaker.append(peakintegral[-1]/negintegral[-1])     
-                                        Adeptrix.ratios.append(peaker)              
-                                        Adeptrix.finalclearpeaks.append(peak)
-                                    elif(peakintegral[-1] == 0 or peak[1] == 0):
-                                        Adeptrix.removepeaks.append(peak)
-                                    elif((len(negintegral) > 0) and (len(peakintegral) > 0)):
-                                        peaker = Adeptrix.signalnoise(peak, data)
-                                        if len(peaker) < 4:
-                                            peaker.append(peakintegral[-1]/negintegral[-1])
-                                        if(peak[1]/info[1] > 2.222 and (abs(((negintegral[-1]/peakintegral[-1]) < .50)) 
-                                            and abs(negintegral[-1]/peakintegral[-1] > .3333333))):
-                                            if peakintegral[-1]/negintegral[-1] < 2.5:
-                                                if peak not in Adeptrix.red:
-                                                    peaker.append('Highly Questionable')
-                                                    Adeptrix.red.append(peaker)
-                                            elif peakintegral[-1]/negintegral[-1] < 3:
-                                                if peak not in Adeptrix.orange:
-                                                    peaker.append('Questionable')
-                                                    Adeptrix.orange.append(peaker)
-                                        elif(abs(((negintegral[-1]/peakintegral[-1]) > .3))):
-                                            if peak not in safe:
-                                                Adeptrix.removepeaks.append(peak)
-                                        elif(abs(((negintegral[-1]/peakintegral[-1]) < .3))):
-                                                safe.append(peak)
-                                                peaker.append(peakintegral[-1]/negintegral[-1])   
-                                                Adeptrix.ratios.append(peaker)
-                                    elif((len(negintegral) > 0) and len(peakintegral) == 0):
-                                        Adeptrix.removepeaks.append(peak)
-                                    else:
-                                        peaker.append("Null")
-                                        Adeptrix.red.append(peak)
-                                    Adeptrix.ratios.append(peaker)
+                                        Adeptrix.removepeaks.append(peaker)
+                                    elif(len(negintegral) == 0 and len(peakintegral > 0)):
+                                        Adeptrix.finalclearpeaks.append(peaker)
+                                    elif(len(negintegral) > 0 and len(peakintegral) > 0):
+                                        if(info[1] != 0):
+                                            if(peak[1]/info[1] > 2.222222):
+                                                if((abs(((negintegral[-1]/peakintegral[-1]) < .50)) 
+                                                and abs(peakintegral[-1]/negintegral[-1] < 3))):
+                                                    if peakintegral[-1]/negintegral[-1] < 2.5:
+                                                        if peak not in Adeptrix.red:
+                                                            peaker.append('Highly Questionable')
+                                                            Adeptrix.red.append(peaker)
+                                                            Adeptrix.finalallpeaks.append(peaker)
+                                                    elif peakintegral[-1]/negintegral[-1] < 3:
+                                                        if peak not in Adeptrix.orange:
+                                                            peaker.append('Questionable')
+                                                            Adeptrix.orange.append(peaker)
+                                                            Adeptrix.finalallpeaks.append(peaker)
+                                                    else:
+                                                        if peak not in Adeptrix.finalclearpeaks:
+                                                            peaker.append('Clear Peak')
+                                                            Adeptrix.finalclearpeaks.append(peaker)
+                                                            Adeptrix.finalallpeaks.append(peaker)
 
 
     @staticmethod
@@ -787,7 +749,8 @@ class Adeptrix:
             t = threading.Thread(target=Adeptrix.controllarge, args = [data]).start()
         for t in threading.enumerate():
             if t != threading.enumerate()[0]:
-                t.join()
+                if t != threading.current_thread():
+                    t.join()
         Adeptrix.allpeaks.sort()
         templist = []
         for peak in Adeptrix.allpeaks:
@@ -855,6 +818,14 @@ class Adeptrix:
                 json.dump(dict, file, indent = 2)
                 print('No Peaks have been found.')
         Adeptrix.plot()
+        for item in os.listdir('./Peak Images/'):
+            if os.path.isdir(item):
+                for items in os.listdir('./Peak Images/'+item):
+                    print(items)
+                    if items.endswith('.html'):
+                        path = items.split('/')[-1]
+                        print(path)
+                        imgkit.from_file(items, path + '.png')
         Adeptrix.datamini = []
         Adeptrix.rawdata = []
         Adeptrix.red = []
@@ -868,6 +839,34 @@ class Adeptrix:
         Adeptrix.filteredpeaks = []     
         Adeptrix.finalallpeaks = []
         Adeptrix.removepeaks = [] 
+
+    @staticmethod
+    def statistics():
+        dataset = []
+        datasets = []
+        for item in os.listdir('./Peak Images/'):
+            if os.path.isdir('./Peak Images/' + item):
+                for items in os.listdir('./Peak Images/' + item):
+                    if items.endswith('.csv'):
+                        with open('./Peak Images/'+ item + '/' + items, 'r') as file:
+                            reader = csv.reader(file)
+                            subset = []
+                            subsets = []
+                            for row in reader:
+                                if row[0] != "Mass/Charge Ratio":
+                                    subsets.append([float(row[0]), float(row[1])])
+                                    subset.append(float(row[1]))
+                            dataset.append(subset)
+                            datasets.append(subsets)
+        anova = f_oneway(dataset[0], dataset[1])
+        kruskalwallis = kruskal(dataset[0], dataset[1])
+        mannwhit = mannwhitneyu(dataset[0], dataset[1], method="auto")
+        pcas = PCA(n_components=2)
+        pcalist = []
+        for sets in datasets:
+            pcas.fit(sets)
+            pcalist.append([pcas.explained_variance_ratio_, pcas.singular_values_])
+        return anova, kruskalwallis, mannwhit, pcalist
 
     @staticmethod
     def loader():
@@ -919,7 +918,7 @@ class Adeptrix:
             plotter.title = 'Intensity to Mass-Charge Ratio' + Adeptrix.filename
             from bokeh.models import Label as labe
             from bokeh.models import Span as spanner
-            if peak in Adeptrix.finalallpeaks:
+            if peak in Adeptrix.finalclearpeaks:
                 plotter.add_layout(spanner(location = peak[0], dimension = 'height', line_color = 'black', line_dash = 'dashed', line_width = 1))
                 plotter.add_layout(labe(x = peak[0], y = 700, y_units = 'screen', text=str(peak[0]), text_font_size = '8pt'))
             if peak in Adeptrix.orange:
@@ -956,6 +955,7 @@ class Adeptrix:
         plotter.title = 'Intensity to Mass-Charge Ratio' + Adeptrix.filename
         from bokeh.models import Label as labe
         from bokeh.models import Span as spanner
+        from bokeh.models import Arrow, VeeHead
         for peak in Adeptrix.finalclearpeaks:
             plotter.add_layout(spanner(location = peak[0], dimension = 'height', line_color = 'black', line_dash = 'dashed', line_width = 1))
             plotter.add_layout(labe(x = peak[0], y = 700, y_units = 'screen', text=str(peak[0]), text_font_size = '8pt'))
@@ -971,6 +971,7 @@ class Adeptrix:
             os.mkdir("./Peak Images/" + str(Adeptrix.filename))
             output_file("./Peak Images/" + str(Adeptrix.filename) + "/" + "Allpeaks.html")
         save(plotter)
+
     @staticmethod
     def condenser(data):
         for row in data:
@@ -1114,8 +1115,13 @@ class Adeptrix:
     @staticmethod
     def start():
         Adeptrix.importer()
+        Adeptrix.statistics()
 
 class Gui:
+    
+    from tkinter import Tk
+    window = Tk()
+
     def browseFileBackground():
         from tkinter import filedialog  
         filename = str(filedialog.askdirectory())
@@ -1126,6 +1132,38 @@ class Gui:
         filename = str(filedialog.askdirectory())
         Adeptrix.datafiles.append(filename)
 
+    def openNewWindow(filename, address):
+            from tkinter import Toplevel
+            from tkinter import Label
+            from tkinter import Button
+            from tkinter import Canvas
+            from tkinter import PhotoImage
+            from tkinter import Image   
+            from tkinter import Grid   
+            from tkinter import Listbox
+            import tkinter as tk
+            # Toplevel object which will
+            # be treated as a new window
+            newWindow = Toplevel(Gui.window)
+            # sets the title of the
+            # Toplevel widget
+            newWindow.title(filename)
+        
+            # sets the geometry of toplevel
+            newWindow.geometry("750x400")
+            # A Label widget to show in toplevel
+            Label(newWindow,
+                text ="Analysis Results of: " + filename).pack()
+            Label(newWindow, 
+                text = 'Loading Information ...').pack()
+            lists = Listbox(newWindow)
+            lists.pack()
+            files = os.listdir(address)
+            for items in files:
+                lists.insert(tk.END, items)
+            
+            
+
     def begin():        
         from tkinter import Tk
         from tkinter import Label
@@ -1135,46 +1173,60 @@ class Gui:
         from tkinter import Image   
         from tkinter import Grid   
         from PIL import ImageTk                            
-        window = Tk()
-        window.title('Adeptrix Peak Analyzer')
-        window.canvas = Canvas(width = 300, height = 300)
-        window.canvas.place(x = 500, y = 250)
-        window.geometry("1500x800")
+        Gui.window.title('Adeptrix Peak Analyzer')
+        Gui.window.canvas = Canvas(width = 300, height = 300)
+        Gui.window.canvas.place(x = 500, y = 250)
+        Gui.window.geometry("1500x800")
         canvas = Canvas(width=600, height=800, bg='blue')
         image = ImageTk.PhotoImage(file="background.gif")
         canvas.create_image(10, 10, image=image)
 
-        label_file_explorer = Label(window,
+        label_file_explorer = Label(Gui.window,
                                     text = "Search Files for Analysis",
                                     width = 100, height = 4,
                                     fg = "blue")
 
-        button_explorer = Button(window,
+        button_explorer = Button(Gui.window,
                                 text = "Select Background File",
                                 command = Gui.browseFileBackground)
 
-        button_explorer2 = Button(window,
+        button_explorer2 = Button(Gui.window,
                             text = "Select Sample File",
                             command = Gui.browseFileSample)
 
-        label_file_explorer.grid()
-        button_explorer.grid()
-        button_explorer2.grid()
+        label_file_explorer.pack()
+        button_explorer.pack()
+        button_explorer2.pack()
 
         def starter():
             if Adeptrix.negcontrolfile != '' and len(Adeptrix.datafiles) > 0:
-                label_analyzing = Label(window,
-                                    text = "Analyzing Peaks, Please Wait...",
+                label_analyzing = Label(Gui.window,
+                                    text = "The results of your analysis will pop up in a new Window.",
                                     width = 100, height = 4,
                                     fg = "blue")
-                label_analyzing.grid()
-                Adeptrix.start()
-        button_starter = Button(window,
+                label_analyzing.pack()
+                Adeptrix.datafiles.sort()
+                threading.Thread(target=Adeptrix.start).start()
+                i = 0
+                leng = []
+                while i == 0:
+                    leng = [*set(leng)]
+                    leng.sort()
+                    if leng == Adeptrix.datafiles:
+                        break
+                    for items in Adeptrix.datafiles:
+                        filename = items.split("/")[-1]
+                        if os.path.isdir('./Peak Images/' + filename):
+                            path = './Peak Images/' + filename
+                            leng.append(items)
+                            threading.Thread(target=Gui.openNewWindow, args = [filename, path]).start()
+
+
+        button_starter = Button(Gui.window,
                                 text = 'Begin Peak Analysis',
                                 command = starter)
-        button_starter.grid()
-        window.mainloop()
-
+        button_starter.pack()
+        Gui.window.mainloop()
 
 Gui.begin()
 # make cut off variable for lowest intensity of peak to detect based on user input
