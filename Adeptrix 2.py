@@ -7,28 +7,22 @@ import time
 import pandas
 import zlib
 import sys
-import pandas as pd
-import numpy as np
 import os
 import threading
 from bokeh.plotting import *
 from bokeh.models import *
 from sklearn.metrics import *
 from sklearn.decomposition import PCA
-from sklearn.preprocessing import StandardScaler
-import matplotlib.pyplot as plt
-from matplotlib.pyplot import text
 from numpy import poly1d
 from numpy import polyfit
 import numpy as np
 from scipy import integrate
 from scipy.stats import f_oneway, mannwhitneyu, kruskal
-import imgkit
+from tkinterdnd2 import *
 
 class Adeptrix:
 
     datamini = []
-    PCAlist = {}
     peaks = []
     rawdata = []
     gendata = []
@@ -43,19 +37,14 @@ class Adeptrix:
     possrempeaks = []
     red = []
     orange = []
-    datas = {}
     finalclearpeaks = []
     negcontrolfile = ''
     datafile = ''
     datafiles = []
-    masses = []
-    intensities = []
     ratios = []
     filename = ''
     peakpointcount = 5
     alignmentfile = ''
-    totaldatas = {}
-    tag = []
 
     @staticmethod
     def importer():
@@ -108,6 +97,7 @@ class Adeptrix:
         for item in Adeptrix.datafiles:
             Adeptrix.datafile = item
             Adeptrix.datasplitter()
+
 
     @staticmethod
     def negcontrolfilter():
@@ -438,11 +428,11 @@ class Adeptrix:
             negsn = peak[1]
         peaker = list(peak)
         if possn > negsn:
-            peaker.append(round(negsn, 2))
+            peaker.append(negsn)
         if negsn > possn:
-            peaker.append(round(possn, 2))
+            peaker.append(possn)
         if possn == negsn:
-            peaker.append(round(possn, 2))
+            peaker.append(possn)
         return peaker
 
     @staticmethod
@@ -559,7 +549,7 @@ class Adeptrix:
                                             for val in negintegrals:
                                                 negintegral.append(val*peakss[1])
                                     peaker = list(Adeptrix.signalnoise(peak, data))
-                                    peaker.append(round(peakintegral[-1]/negintegral[-1], 2))
+                                    peaker.append(peakintegral[-1]/negintegral[-1])
                                     if(len(peakintegral) < 1):
                                         #print(peak, info)
                                         #print(surroundvalues)
@@ -688,7 +678,7 @@ class Adeptrix:
                                             for val in negintegrals:
                                                 negintegral.append(val*peakss[1])
                                     peaker = list(Adeptrix.signalnoise(peak, data))
-                                    peaker.append(round(peakintegral[-1]/negintegral[-1], 2))
+                                    peaker.append(peakintegral[-1]/negintegral[-1])
                                     if(len(peakintegral) < 1):
                                         #print(peak, info)
                                         #print(surroundvalues)
@@ -739,7 +729,6 @@ class Adeptrix:
         Adeptrix.filename = Adeptrix.datafile.split("/")[-1]
         Adeptrix.filename = str(Adeptrix.filename.split(".")[0])
         rowcount = 0
-        directories = str(os.getcwd()) + '/Radx_data_8_24/Mutants/Sample Stuff/Peak Data'
         with open(Adeptrix.datafile, 'r' ) as adep:
             datas = list(csv.reader(adep, delimiter = ' '))
             for row in datas:
@@ -771,6 +760,7 @@ class Adeptrix:
         Adeptrix.allpeaks = templist
         Adeptrix.compare()
         dict = {}
+        dict['Peaks for ' + Adeptrix.datafile] = []
         dict['Peaks for ' + Adeptrix.datafile] = {}
         newlistclear = []
         newlistorange = []
@@ -816,19 +806,10 @@ class Adeptrix:
             except IOError:
                 print("I/O error")
         if(len(Adeptrix.finalallpeaks) > 0):
-            print("Peaks have been uploaded to the appropriate subfolder in the Peak Images folder.")
-            # Develop dictionary to get more specific to mutations and amino acid sequences as program develops further
+            print("Potential Peaks have been uploaded to their designated folder.")
         else:
             print('No Peaks have been found.')
         Adeptrix.plot()
-        for row in Adeptrix.rawdata:
-            Adeptrix.masses.append(row[0])
-            Adeptrix.intensities.append(row[1])
-            Adeptrix.tag.append(Adeptrix.datafile.split("/")[-1].split('.')[0])
-        Adeptrix.datas['Masses'] = Adeptrix.masses
-        Adeptrix.datas['Intensities'] = Adeptrix.intensities
-        Adeptrix.datas['Target'] = Adeptrix.tag
-        Adeptrix.totaldatas = Adeptrix.datas
         Adeptrix.datamini = []
         Adeptrix.rawdata = []
         Adeptrix.red = []
@@ -847,110 +828,29 @@ class Adeptrix:
     def statistics():
         dataset = []
         datasets = []
-        subsets = []
-        subset = []
         for item in os.listdir('./Peak Images/'):
             if os.path.isdir('./Peak Images/' + item):
                 for items in os.listdir('./Peak Images/' + item):
                     if items.endswith('.csv'):
                         with open('./Peak Images/'+ item + '/' + items, 'r') as file:
                             reader = csv.reader(file)
+                            subset = []
+                            subsets = []
                             for row in reader:
                                 if row[0] != "Mass/Charge Ratio":
                                     subsets.append([float(row[0]), float(row[1])])
                                     subset.append(float(row[1]))
+                            dataset.append(subset)
                             datasets.append(subsets)
-        anovas = []
-        kruskals = []
-        mannwhit = []
-        peaks = {}
-        for row in subsets:
-            num = round(row[0])
-            if str(num) not in peaks:
-                peaks[str(num)] = []
-                for rows in subsets:
-                    if((rows[0] > row[0] - 1) and (rows[0] < row[0] + 1)):
-                        peaks[str(num)].append(rows[1])
-                if(len(peaks[str(num)]) > 1):
-                    #anovas.append(f_oneway(peaks[str(num)]))
-                    #kruskals.append(kruskal(peaks[str(num)]))
-                    #mannwhit.append(mannwhitneyu(peaks[str(num)], method="auto"))
-                    pass
-        peaklist = list(peaks.keys())
-        """
-        anovadata = {}
-        anovadata['Peaks'] = peaklist
-        anovadata['Anova'] = anovas
-        kruskalsdata = {}
-        kruskalsdata['Peaks'] = peaklist
-        kruskalsdata['Kruskal Wallis'] = kruskals
-        mannwhitdata = {}
-        mannwhitdata['Peaks'] = peaklist
-        mannwhitdata['Mann Whitney'] = mannwhit
-        anovasdf = pd.DataFrame.from_dict(anovadata)
-        kruskalsdf = pd.DataFrame.from_dict(kruskalsdata)
-        mannwhitdf = pd.DataFrame.from_dict(mannwhitdata)
-        """
+        anova = f_oneway(dataset[0], dataset[1])
+        kruskalwallis = kruskal(dataset[0], dataset[1])
+        mannwhit = mannwhitneyu(dataset[0], dataset[1], method="auto")
         pcas = PCA(n_components=2)
-        features = ['Masses', 'Intensities']
-        totaldatass = pd.DataFrame.from_dict(Adeptrix.totaldatas)
-        x = totaldatass.loc[:, features].values
-        y = totaldatass.loc[:,['Target']].values
-        x = StandardScaler().fit_transform(x)
-        principalComponents = pcas.fit_transform(x)
-        pcas.fit(x)
-        principalDf = pd.DataFrame(data = principalComponents, columns = ['principal component 1', 'principal component 2'])
-        fig = plt.figure(figsize = (8,8))
-        figtwo = plt.figure(figsize = (8,8))
-        scoreplot = figtwo.add_subplot(1,1,1)
-        pcaone = pcas.components_[0]
-        pcatwo = pcas.components_[1]
-        x = []
-        y = []
-        xtwo = []
-        ytwo = []
-        for num in pcaone:
-            if num == pcaone[0]:
-                x.append(num)
-            if num == pcaone[1]:
-                y.append(num)
-        for num in pcatwo:
-            if num == pcatwo[0]:
-                xtwo.append(num)
-            if num == pcatwo[1]:
-                ytwo.append(num)
-        scoreplot.scatter(x, y, c = 'b', s = 50)
-        scoreplot.scatter(xtwo, ytwo, c = 'g', s = 50)
-        scoreplot.set_xlabel('Principal Component 1', fontsize = 15)
-        scoreplot.set_ylabel('Principal Component 2', fontsize = 15)
-        scoreplot.set_title('2 Component PCA', fontsize = 20)
-        scoreplot.legend(['Delta', 'Omicron'])
-        ax = fig.add_subplot(1,1,1)
-        ax.set_xlabel('Principal Component 1', fontsize = 15)
-        ax.set_ylabel('Principal Component 2', fontsize = 15)
-        ax.set_title('2 Component PCA', fontsize = 20)
-        targets = list((totaldatass.loc[:,['Target']].values).tolist())
-        targs = []
-        for targe in targets:
-            if targe[0] not in targs:
-                targs.append(targe[0])
-        colornum = len(targs)
-        colors = []
-        finalDf = pd.concat([principalDf, totaldatass[['Target']]], axis = 1)
-        import matplotlib.colors as mcolors
-        colorlist = list(mcolors.BASE_COLORS)
-        for num in range(0, colornum):
-            colors.append(colorlist[num])
-        for target, color in zip(targs,colors):
-            indicesToKeep = finalDf['Target'] == target
-            ax.scatter(finalDf.loc[indicesToKeep, 'principal component 1']
-                    , finalDf.loc[indicesToKeep, 'principal component 2']
-                    , c = color
-                    , s = 50)
-        ax.legend(['Delta', 'Omicron'])
-        ax.grid()
-        figtwo.savefig("PCA Score Plot.png")
-        fig.savefig('PCA Loading Plot.png')
+        pcalist = []
+        for sets in datasets:
+            pcas.fit(sets)
+            pcalist.append([pcas.explained_variance_ratio_, pcas.singular_values_])
+        return anova, kruskalwallis, mannwhit, pcalist
 
     @staticmethod
     def loader():
@@ -1197,10 +1097,9 @@ class Adeptrix:
     @staticmethod
     def start():
         Adeptrix.importer()
-        Adeptrix.statistics()
 
 class Gui:
-    from tkinterdnd2 import Tk
+
     window = Tk()
     var = StringVar()
     vartwo = StringVar()
@@ -1270,37 +1169,19 @@ class Gui:
     def openSummary():
         from tkinter import Toplevel
         from tkinter import Label
-        from tkinter import Listbox
         from tkinter import Button
-        import tkinter as tk
-        # Toplevel object which will
-        # be treated as a new window
-        newWindow = Toplevel(Gui.window)
-        # sets the title of the
-        # Toplevel widget
-        newWindow.title('Data Summary')
-        Label(newWindow, text ="This window contains data summarizing all of your analyses.").pack()
-        # sets the geometry of toplevel
-        newWindow.geometry("1000x533")
-        datas = str(Adeptrix.statistics())
-        # A Label widget to show in toplevel
-        lists = Listbox(newWindow)
-        lists.pack()
-        files = os.listdir('./')
-        while len(files) == 0:
-            if len(files) > 0:
-                break
-        for items in files:
-            if items.endswith(".png"):
-                lists.insert(tk.END, items)
-        def html():
-            import webview
-            name = lists.get(tk.ANCHOR)
-            names = os.getcwd() + '/' + name
-            webview.create_window('Data', names, fullscreen = False, min_size=(2000, 1000))
-            webview.start()
-        Button(newWindow, text = 'Open Analysis', command = html).pack()
-        Label(newWindow, text = datas).pack()
+        from tkinter import Canvas
+        from tkinter import PhotoImage
+        from tkinter import Image   
+        from tkinter import Grid   
+        from tkinter import Listbox
+        summary = Toplevel(Gui.window)
+        summary.title('Analysis Summary')
+        summary.geometry('1000x533')
+        stats = Adeptrix.statistics()
+        stats = str(stats)
+        Label(summary, text ="This window contains data summarizing all of your analyses.").pack()
+        Label(summary, text = "Stats: " + stats).pack()
 
     def begin():        
         from tkinter import Label
@@ -1355,7 +1236,10 @@ class Gui:
                     if os.path.isdir('./Peak Images/' + items.split("/")[-1].split('.')[0]):
                         path = ('./Peak Images/' + items.split("/")[-1].split('.')[0])
                         threading.Thread(target=Gui.openNewWindow, args = [filename, path]).start()
-                threading.Thread(target=Gui.openSummary).start()
+                button_summary = Button(Gui.window,
+                                text = 'Open Your Data Summary Here',
+                                command = Gui.openSummary)
+                button_summary.pack()
         
         button_starter = Button(Gui.window,
                                 text = 'Begin Peak Analysis',
@@ -1367,3 +1251,4 @@ Gui.begin()
 # make cut off variable for lowest intensity of peak to detect based on user input
 # make cut off variable for lowest mass ratio to detect based on user input
 # change ratio to some factor of peakshape so that it can single out more specific/borderline peaks such as 1709 and 2707
+
