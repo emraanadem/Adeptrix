@@ -14,6 +14,7 @@ import threading
 from bokeh.plotting import *
 from bokeh.models import *
 from sklearn.metrics import *
+from sklearn.cluster import KMeans
 from sklearn.decomposition import PCA
 from sklearn.preprocessing import StandardScaler
 import matplotlib.pyplot as plt
@@ -891,7 +892,7 @@ class Adeptrix:
         kruskalsdf = pd.DataFrame.from_dict(kruskalsdata)
         mannwhitdf = pd.DataFrame.from_dict(mannwhitdata)
         """
-        pcas = PCA(n_components=2)
+        pcas = PCA(n_components=.99)
         features = ['Masses', 'Intensities']
         totaldatass = pd.DataFrame.from_dict(Adeptrix.totaldatas)
         x = totaldatass.loc[:, features].values
@@ -902,29 +903,12 @@ class Adeptrix:
         principalDf = pd.DataFrame(data = principalComponents, columns = ['principal component 1', 'principal component 2'])
         fig = plt.figure(figsize = (8,8))
         figtwo = plt.figure(figsize = (8,8))
+        figthree = plt.figure(figsize = (8,8))
+        elbowplot = figthree.add_subplot(1,1,1)
         scoreplot = figtwo.add_subplot(1,1,1)
-        pcaone = pcas.components_[0]
-        pcatwo = pcas.components_[1]
-        x = []
-        y = []
-        xtwo = []
-        ytwo = []
-        for num in pcaone:
-            if num == pcaone[0]:
-                x.append(num)
-            if num == pcaone[1]:
-                y.append(num)
-        for num in pcatwo:
-            if num == pcatwo[0]:
-                xtwo.append(num)
-            if num == pcatwo[1]:
-                ytwo.append(num)
-        scoreplot.scatter(x, y, c = 'b', s = 50)
-        scoreplot.scatter(xtwo, ytwo, c = 'g', s = 50)
         scoreplot.set_xlabel('Principal Component 1', fontsize = 15)
         scoreplot.set_ylabel('Principal Component 2', fontsize = 15)
         scoreplot.set_title('2 Component PCA', fontsize = 20)
-        scoreplot.legend(['Delta', 'Omicron'])
         ax = fig.add_subplot(1,1,1)
         ax.set_xlabel('Principal Component 1', fontsize = 15)
         ax.set_ylabel('Principal Component 2', fontsize = 15)
@@ -941,6 +925,49 @@ class Adeptrix:
         colorlist = list(mcolors.BASE_COLORS)
         for num in range(0, colornum):
             colors.append(colorlist[num])
+        points = []
+        for targer, color in zip(targs, colors):
+            x = []
+            y = []
+            for i in range(len(finalDf)):
+                if finalDf.loc[i, 'Target'] == targer:
+                    x.append(finalDf.loc[i, 'principal component 1'])
+                    y.append(finalDf.loc[i, 'principal component 2'])
+            pc1 = 0
+            pc2 = 0
+            for num in x:
+                pc1 += num
+            for num in y:
+                pc2 += num
+            pc1 = pc1/len(x)
+            pc2 = pc2/len(y)
+            points.append([pc1, pc2])
+        inertias = []
+        q = len(Adeptrix.datafiles) + 1
+        for i in range(1,q):
+            kmeans = KMeans(n_clusters=i)
+            kmeans.fit(points)
+            inertias.append(kmeans.inertia_)
+        elbowplot.plot(range(1,q), inertias, marker='o')
+        elbowplot.set_title('Elbow method')
+        elbowplot.set_xlabel('Number of clusters')
+        elbowplot.set_ylabel('Inertia')
+        figthree.savefig('Elbow Grouping.png')
+        kmeans = KMeans(n_clusters=2)
+        kmeans.fit(points)
+        x = []
+        y = []
+        for point in points:
+            x.append(point[0])
+            y.append(point[1])
+        colorss = kmeans.labels_
+        for point in points:
+            if colorss[points.index(point)] == 0:
+                scoreplot.scatter(point[0], point[1], c = 'b', s = 50)
+                scoreplot.annotate('Delta', xy = (point[0], point[1]), xytext = (point[0], point[1]))
+            if colorss[points.index(point)] == 1:
+                scoreplot.scatter(point[0], point[1], c = 'g', s = 50)
+                scoreplot.annotate('Omicron', xy = (point[0], point[1]), xytext = (point[0], point[1]))
         for target, color in zip(targs,colors):
             indicesToKeep = finalDf['Target'] == target
             ax.scatter(finalDf.loc[indicesToKeep, 'principal component 1']
@@ -1361,6 +1388,7 @@ class Gui:
                                 text = 'Begin Peak Analysis',
                                 command = starter)
         button_starter.pack()
+        Button(Gui.window, text = "Open Summary Window", command = Gui.openSummary).pack()
         Gui.window.mainloop()
 
 Gui.begin()
