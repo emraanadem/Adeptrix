@@ -897,6 +897,7 @@ class Adeptrix:
         totaldatass = pd.DataFrame.from_dict(Adeptrix.totaldatas)
         x = totaldatass.loc[:, features].values
         y = totaldatass.loc[:,['Target']].values
+        totaldatass.to_csv('Final Data Before PCA.csv', sep = '\t')
         x = StandardScaler().fit_transform(x)
         principalComponents = pcas.fit_transform(x)
         pcas.fit(x)
@@ -926,13 +927,16 @@ class Adeptrix:
         for num in range(0, colornum):
             colors.append(colorlist[num])
         points = []
+        targsss = []
         for targer, color in zip(targs, colors):
             x = []
             y = []
+            targ = ''
             for i in range(len(finalDf)):
                 if finalDf.loc[i, 'Target'] == targer:
                     x.append(finalDf.loc[i, 'principal component 1'])
                     y.append(finalDf.loc[i, 'principal component 2'])
+                    targ = targer
             pc1 = 0
             pc2 = 0
             for num in x:
@@ -942,6 +946,7 @@ class Adeptrix:
             pc1 = pc1/len(x)
             pc2 = pc2/len(y)
             points.append([pc1, pc2])
+            targsss.append(targ)
         inertias = []
         q = len(Adeptrix.datafiles) + 1
         for i in range(1,q):
@@ -953,7 +958,7 @@ class Adeptrix:
         elbowplot.set_xlabel('Number of clusters')
         elbowplot.set_ylabel('Inertia')
         figthree.savefig('Elbow Grouping.png')
-        kmeans = KMeans(n_clusters=2)
+        kmeans = KMeans(n_clusters=3)
         kmeans.fit(points)
         x = []
         y = []
@@ -964,18 +969,23 @@ class Adeptrix:
         for point in points:
             if colorss[points.index(point)] == 0:
                 scoreplot.scatter(point[0], point[1], c = 'b', s = 50)
-                scoreplot.annotate('Delta', xy = (point[0], point[1]), xytext = (point[0], point[1]))
+                scoreplot.annotate(targsss[points.index(point)], xy = (point[0], point[1]), xytext = (point[0], point[1]))
             if colorss[points.index(point)] == 1:
                 scoreplot.scatter(point[0], point[1], c = 'g', s = 50)
-                scoreplot.annotate('Omicron', xy = (point[0], point[1]), xytext = (point[0], point[1]))
+                scoreplot.annotate(targsss[points.index(point)], xy = (point[0], point[1]), xytext = (point[0], point[1]))
+            if colorss[points.index(point)] == 2:
+                scoreplot.scatter(point[0], point[1], c = 'r', s = 50)
+                scoreplot.annotate(targsss[points.index(point)], xy = (point[0], point[1]), xytext = (point[0], point[1]))
         for target, color in zip(targs,colors):
             indicesToKeep = finalDf['Target'] == target
             ax.scatter(finalDf.loc[indicesToKeep, 'principal component 1']
                     , finalDf.loc[indicesToKeep, 'principal component 2']
                     , c = color
                     , s = 50)
-        ax.legend(['Delta', 'Omicron'])
+        ax.legend(['Delta', 'Omicron', 'Negative Control'])
         ax.grid()
+        finalDf.to_csv("Final Data PCA.csv", sep='\t')
+
         figtwo.savefig("PCA Score Plot.png")
         fig.savefig('PCA Loading Plot.png')
 
