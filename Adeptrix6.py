@@ -57,13 +57,39 @@ class Adeptrix:
     intensities = []
     ratios = []
     filename = ''
-    peakpointcount = 5
+    peakpointcount = 0
     alignmentfile = ''
     totaldatas = {}
     tag = []
+    flexval = ""
+
+    @staticmethod
+    def negedit():
+        import random
+        file = "negcont.txt"
+        lenvals = []
+        data = []
+        with open(file, 'r' ) as adep:
+            datas = csv.reader(adep, delimiter = ' ')
+            for row in datas:
+                row[0] = round(float(row[0]), 2)
+                row[1] = int(float(row[1]))
+                data.append(row)
+        for row in data:
+            row[1] = random.randint(50, 100)
+        with open(file, 'w+') as filee:
+            for row in data:
+                if row != data[len(data)-1]:
+                    filee.write(str(row[0])+" "+ str(row[1])+"\n")
+                else:
+                    filee.write(str(row[0])+" "+ str(row[1]))
 
     @staticmethod
     def importer():
+        if Adeptrix.flexval == "SmartFlex":
+            Adeptrix.peakpointcount = 5
+        else:
+            Adeptrix.peakpointcount = 10
         from rpy2 import robjects
         filelisttwo = []
         masses = []
@@ -110,6 +136,7 @@ class Adeptrix:
             Adeptrix.datafile = str(folders) + '.txt'
             filelisttwo.append(Adeptrix.datafile)
         Adeptrix.datafiles = filelisttwo
+        Adeptrix.cropping(Adeptrix.datafiles)
         for item in Adeptrix.datafiles:
             Adeptrix.datafile = item
             Adeptrix.datasplitter()
@@ -170,6 +197,37 @@ class Adeptrix:
             templist.sort()
         Adeptrix.negpeaks = templist
     
+
+    @staticmethod
+    def cropping(filelist):
+        lenvals = []
+        for file in filelist:
+            data = []
+            with open(file, 'r' ) as adep:
+                datas = csv.reader(adep, delimiter = ' ')
+                for row in datas:
+                    row[0] = round(float(row[0]), 2)
+                    row[1] = int(float(row[1]))
+                    data.append(row)
+            lenvals.append(len(data))
+        minval = min(lenvals)
+        for file in filelist:
+            data = []
+            with open(file, 'r' ) as adep:
+                datas = csv.reader(adep, delimiter = ' ')
+                for row in datas:
+                    row[0] = round(float(row[0]), 2)
+                    row[1] = int(float(row[1]))
+                    data.append(row)
+            while len(data) > minval:
+                data = data[0:len(data)-1]
+            with open(file, 'w+') as filee:
+                for row in data:
+                    if row != data[len(data)-1]:
+                        filee.write(str(row[0])+" "+ str(row[1])+"\n")
+                    else:
+                        filee.write(str(row[0])+" "+ str(row[1]))
+            
     @staticmethod
     def compare():
         Adeptrix.finalallpeaks = []
@@ -304,11 +362,11 @@ class Adeptrix:
                             breakerpossur = True
                         if(data[data.index(peak[0:2])-num][1] < 0):
                             breakernegsur = True
-                        if((breakerpossur == False) and (poscount >= 5)):
+                        if((breakerpossur == False) and (poscount >= Adeptrix.peakpointcount)):
                             breakerpossur = True
                         if(breakerpossur == False):
                             surroundvalues.append(data[data.index(peak[0:2])+num])
-                        if((breakernegsur == False) and (negcount >= 5)):
+                        if((breakernegsur == False) and (negcount >= Adeptrix.peakpointcount)):
                             breakernegsur = True
                         if(breakernegsur == False):
                             surroundvalues.append(data[data.index(peak[0:2])-num])
@@ -369,13 +427,13 @@ class Adeptrix:
                         breakerpossur = True
                     if(data[data.index(peak[0:2])-num][1] < 0):
                         breakernegsur = True
-                    if((breakerpossur == False) and (poscount >= 5)):
+                    if((breakerpossur == False) and (poscount >= Adeptrix.peakpointcount)):
                         breakerpossur = True
                     if(breakerpossur == False):
                         surroundvalues.append(data[data.index(peak[0:2])+num])
                         if data[data.index(peak[0:2])+num] > peak[0:2]:
                             surroundgreater.append(data[data.index(peak[0:2])+num])
-                    if((breakernegsur == False) and (negcount >= 5)):
+                    if((breakernegsur == False) and (negcount >= Adeptrix.peakpointcount)):
                         breakernegsur = True
                     if(breakernegsur == False):
                         surroundvalues.append(data[data.index(peak[0:2])-num])
@@ -501,11 +559,11 @@ class Adeptrix:
                             breakerpossur = True
                         if(data[data.index(peak[0:2])-num][1] < 0):
                             breakernegsur = True
-                        if((breakerpossur == False) and (poscount >= 5)):
+                        if((breakerpossur == False) and (poscount >= Adeptrix.peakpointcount)):
                             breakerpossur = True
                         if(breakerpossur == False):
                             surroundvalues.append(data[data.index(peak[0:2])+num])
-                        if((breakernegsur == False) and (negcount >= 5)):
+                        if((breakernegsur == False) and (negcount >= Adeptrix.peakpointcount)):
                             breakernegsur = True
                         if(breakernegsur == False):
                             surroundvalues.append(data[data.index(peak[0:2])-num])
@@ -541,11 +599,11 @@ class Adeptrix:
                                             breakerposneg = True
                                         if(negdata[negdata.index(info)-numbe][1] < 0):
                                             breakernegneg = True
-                                        if((breakerposneg == False) and (backposcount >= 5)):
+                                        if((breakerposneg == False) and (backposcount >= Adeptrix.peakpointcount)):
                                             breakerposneg = True
                                         if(breakerposneg == False):
                                             negsurround.append(negdata[negdata.index(info)+numbe])
-                                        if((breakernegneg == False) and (backnegcount >= 5)):
+                                        if((breakernegneg == False) and (backnegcount >= Adeptrix.peakpointcount)):
                                             breakernegneg = True
                                         if(breakernegneg == False):
                                             negsurround.append(negdata[negdata.index(info)-numbe])
@@ -564,7 +622,12 @@ class Adeptrix:
                                             for val in negintegrals:
                                                 negintegral.append(val*peakss[1])
                                     peaker = list(Adeptrix.signalnoise(peak, data))
-                                    peaker.append(round(peakintegral[-1]/negintegral[-1], 2))
+                                    if len(peakintegral) > 0 and len(negintegral) > 0:
+                                        peaker.append(round(peakintegral[-1]/negintegral[-1], 2))
+                                    elif len(peakintegral) > 0:
+                                        peaker.append(peakintegral[-1])
+                                    elif len(negintegral) > 0:
+                                        peaker.append(0)
                                     if(len(peakintegral) < 1):
                                         #print(peak, info)
                                         #print(surroundvalues)
@@ -630,11 +693,11 @@ class Adeptrix:
                             breakerpossur = True
                         if(data[data.index(peak[0:2])-num][1] < 0):
                             breakernegsur = True
-                        if((breakerpossur == False) and (poscount >= 5)):
+                        if((breakerpossur == False) and (poscount >= Adeptrix.peakpointcount)):
                             breakerpossur = True
                         if(breakerpossur == False):
                             surroundvalues.append(data[data.index(peak[0:2])+num])
-                        if((breakernegsur == False) and (negcount >= 5)):
+                        if((breakernegsur == False) and (negcount >= Adeptrix.peakpointcount)):
                             breakernegsur = True
                         if(breakernegsur == False):
                             surroundvalues.append(data[data.index(peak[0:2])-num])
@@ -670,11 +733,11 @@ class Adeptrix:
                                             breakerposneg = True
                                         if(negdata[negdata.index(info)-numbe][1] < 0):
                                             breakernegneg = True
-                                        if((breakerposneg == False) and (backposcount >= 5)):
+                                        if((breakerposneg == False) and (backposcount >= Adeptrix.peakpointcount)):
                                             breakerposneg = True
                                         if(breakerposneg == False):
                                             negsurround.append(negdata[negdata.index(info)+numbe])
-                                        if((breakernegneg == False) and (backnegcount >= 5)):
+                                        if((breakernegneg == False) and (backnegcount >= Adeptrix.peakpointcount)):
                                             breakernegneg = True
                                         if(breakernegneg == False):
                                             negsurround.append(negdata[negdata.index(info)-numbe])
@@ -693,7 +756,12 @@ class Adeptrix:
                                             for val in negintegrals:
                                                 negintegral.append(val*peakss[1])
                                     peaker = list(Adeptrix.signalnoise(peak, data))
-                                    peaker.append(round(peakintegral[-1]/negintegral[-1], 2))
+                                    if len(peakintegral) > 0 and len(negintegral) > 0:
+                                        peaker.append(round(peakintegral[-1]/negintegral[-1], 2))
+                                    elif len(peakintegral) > 0:
+                                        peaker.append(peakintegral[-1])
+                                    elif len(negintegral) > 0:
+                                        peaker.append(0)
                                     if(len(peakintegral) < 1):
                                         #print(peak, info)
                                         #print(surroundvalues)
@@ -745,13 +813,13 @@ class Adeptrix:
         Adeptrix.filename = str(Adeptrix.filename.split(".")[0])
         rowcount = 0
         directories = str(os.getcwd()) + '/Radx_data_8_24/Mutants/Sample Stuff/Peak Data'
+        Adeptrix.loader()
         with open(Adeptrix.datafile, 'r' ) as adep:
             datas = list(csv.reader(adep, delimiter = ' '))
             for row in datas:
                 rowcount += 1
         rowcount2 = int(rowcount/2000 + 1)
         numthree = 0
-        Adeptrix.loader()
         intensities = []
         for row in Adeptrix.rawdata:
             intensities.append(float(row[1]))
@@ -853,15 +921,12 @@ class Adeptrix:
         dataset = []
         datasets = []
         subsets = []
-        filename = './Peak Images/'
-        if '_MEIPASS2' in os.environ:
-            filename = os.path.join(os.environ['_MEIPASS2'], filename)
-        for item in os.listdir(filename):
+        for item in os.listdir('./Peak Images/'):
             subsets = []
-            if os.path.isdir(filename + item):
-                for items in os.listdir(filename + item):
+            if os.path.isdir('./Peak Images/' + item):
+                for items in os.listdir('./Peak Images/' + item):
                     if items.endswith('.csv'):
-                        with open(filename + item + '/' + items, 'r') as file:
+                        with open('./Peak Images/'+ item + '/' + items, 'r') as file:
                             reader = csv.reader(file)
                             for row in reader:
                                 if row[0] != "Mass/Charge Ratio":
@@ -889,7 +954,10 @@ class Adeptrix:
                     intensity = row["Intensities"]
                     colnum = listofstuff.index(columnName)
                     rowid = len(testflipped.index)
-                    testflipped.loc[len(testflipped.index)] = [row["Masses"], 0, 0, 0, 0]
+                    filler = [row["Masses"]]
+                    for num in range(0, len(targerrrtwo)):
+                        filler.append(0)
+                    testflipped.loc[len(testflipped.index)] = filler
                     testflipped.iloc[rowid][columnName] = intensity
         for index, row in testflipped.iterrows():
             for indextwo, rowtwo in testflipped.iterrows():
@@ -927,7 +995,7 @@ class Adeptrix:
         kruskalsdf = pd.DataFrame.from_dict(kruskalsdata)
         mannwhitdf = pd.DataFrame.from_dict(mannwhitdata)
         """
-        pcas = PCA(n_components=.95)
+        pcas = PCA(n_components=len(targerrrtwo)+1)
         features = listofstuff
         totaldatass = testflipped
         x = totaldatass.loc[:, features].values
@@ -976,7 +1044,7 @@ class Adeptrix:
                 targetcounter.append([[xval, yval], target])
         import matplotlib.colors as mcolors
         colorlist = list(mcolors.BASE_COLORS)
-        colornum = len(targerrr)
+        colornum = 6
         colors = []
         for num in range(0, colornum):
             colors.append(colorlist[num])
@@ -1018,17 +1086,15 @@ class Adeptrix:
         #plotting the results
         plottt = plt.figure(figsize = (8,8))
         scorer = plottt.add_subplot(1,1,1)
-        print(filtered_label0)
-        print(filtered_label1)
+        scorer.set_xlabel('Principal Component 1', fontsize = 15)
+        scorer.set_ylabel('Principal Component 2', fontsize = 15)
+        scorer.set_title('2 Component PCA', fontsize = 20)
         for index,row in filtered_label0.iterrows():
             scorer.scatter(row["x"], row["y"], color = "red")
             scorer.annotate(row["Target"], xy = (row["x"], row["y"]))
         for index,row in filtered_label1.iterrows():
             scorer.scatter(row["x"], row["y"], color = "blue")
             scorer.annotate(row["Target"], xy = (row["x"], row["y"]))
-        scorer.set_xlabel('Principal Component 1', fontsize = 15)
-        scorer.set_ylabel('Principal Component 2', fontsize = 15)
-        scorer.set_title('2 Component PCA', fontsize = 20)
         plottt.savefig("test.png")
         """
         targets = list((totaldatass.loc[:,['Target']].values).tolist())
@@ -1339,14 +1405,14 @@ class Adeptrix:
             pos_count = 0
             neg_count = 0
             for rows in range(0, len(maindata)):
-                if(rows > 10 and rows < len(maindata)-11):
+                if(rows > Adeptrix.peakpointcount*2 and rows < len(maindata)-(Adeptrix.peakpointcount*2)-1):
                     if(data[row][0] == maindata[rows][0]):
                         for counting in range(1, Adeptrix.peakpointcount+1):
                             if(float(maindata[rows][1]) > float(maindata[rows+counting][1])):
                                 pos_count += 1
                             if(float(maindata[rows][1]) > float(maindata[rows-counting][1])):
                                 neg_count += 1
-                        if(pos_count + neg_count >= 10):
+                        if(pos_count + neg_count >= Adeptrix.peakpointcount*2):
                             newpeaks.append(data[row])
         newpeaks.sort()
         peaktransfer = newpeaks
@@ -1371,6 +1437,7 @@ class Gui:
     window = Tk()
     var = StringVar()
     vartwo = StringVar()
+    textvarthree = StringVar()
 
 
     def browseFileBackground(stringvar):
@@ -1472,6 +1539,7 @@ class Gui:
     def begin():        
         from tkinter import Label
         from tkinter import Button
+        from tkinter import OptionMenu
         Gui.window.title('Adeptrix Peak Analyzer')
         Gui.window.geometry("1500x800")
 
@@ -1488,13 +1556,15 @@ class Gui:
             Gui.var.set(event.data.replace("{", "").replace("}", ""))
         textvarone = StringVar()
         textvartwo = StringVar()
+        Gui.textvarthree.set("SmartFlex")
+        w = OptionMenu(Gui.window, Gui.textvarthree, "SmartFlex", "AutoFlex")
+        w.pack()
         textvarone.set("Drop Background Files Here")
         textvartwo.set("Drop Sample Files Here")
         e_box = Entry(Gui.window, textvar=textvarone, width=80)
         e_box.pack()
         e_box.drop_target_register(DND_FILES)
         e_box.dnd_bind('<<Drop>>', drop)
-
         def droptwo(event):
             value = Gui.vartwo.get()
             value += (event.data)
@@ -1507,6 +1577,7 @@ class Gui:
         def starter():
             Gui.browseFileBackground(Gui.var)
             Gui.browseFileSample(Gui.vartwo)
+            Adeptrix.flexval = Gui.textvarthree.get()
             if Adeptrix.negcontrolfile != '' and len(Adeptrix.datafiles) > 0:
                 label_analyzing = Label(Gui.window,
                                     text = "The results of your analysis will pop up in a new Window.",
@@ -1535,3 +1606,6 @@ Gui.begin()
 # make cut off variable for lowest intensity of peak to detect based on user input
 # make cut off variable for lowest mass ratio to detect based on user input
 # change ratio to some factor of peakshape so that it can single out more specific/borderline peaks such as 1709 and 2707
+
+
+# Line 957-958 makes no sense...

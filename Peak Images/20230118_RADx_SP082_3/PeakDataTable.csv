@@ -1,0 +1,109 @@
+Mass/Charge Ratio,Intensity,Signal/Noise Ratio,Intensity Ratio,Peak Confidence
+735.22,3315,2.1,2.38,Highly Questionable
+737.2,2275,2.36,2.53,Questionable
+739.18,1848,1846.04,2.05,Highly Questionable
+807.62,19761,2.23,2.45,Highly Questionable
+829.65,1788,1786.18,2.16,Highly Questionable
+841.73,2948,2946.6,2.04,Highly Questionable
+843.66,2262,2.17,2.73,Questionable
+858.96,3283,3281.83,2.25,Highly Questionable
+870.86,1024,3.59,2.5,Questionable
+895.92,1395,2.41,2.11,Highly Questionable
+909.28,4698,4696.19,2.16,Highly Questionable
+912.09,3099,3097.51,2.97,Questionable
+922.14,1413,1411.56,2.19,Highly Questionable
+926.18,2854,2852.33,2.09,Highly Questionable
+937.32,1528,2.44,2.07,Highly Questionable
+940.17,1585,2.48,2.52,Questionable
+943.43,1516,2.72,3.6,Clear Peak
+952.63,14646,2.59,11.28,Clear Peak
+957.14,2837,2835.64,4.5,Clear Peak
+964.55,1345,1343.93,2.04,Highly Questionable
+966.41,1238,1236.57,2.23,Highly Questionable
+969.51,2277,2275.61,3.54,Clear Peak
+993.85,13553,2.54,11.9,Clear Peak
+998.67,4292,4290.49,7.08,Clear Peak
+1015.53,986,985.21,2.26,Highly Questionable
+1016.8,1001,2.03,2.5,Questionable
+1040.87,4020,4018.71,2.19,Highly Questionable
+1042.58,2760,2758.85,2.7,Questionable
+1044.94,2737,2735.55,2.77,Questionable
+1050.1,4086,2.63,2.03,Highly Questionable
+1051.82,2888,2886.75,2.47,Highly Questionable
+1056.78,1367,2.72,3.17,Clear Peak
+1058.94,1136,2.29,2.73,Questionable
+1075.0,25834,2.56,12.62,Clear Peak
+1089.2,61565,2.83,49.52,Clear Peak
+1102.39,14191,14189.57,2.86,Questionable
+1133.27,10269,10267.82,5.89,Clear Peak
+1137.3,5312,5310.41,2.42,Highly Questionable
+1143.35,209481,2.24,113.15,Clear Peak
+1157.55,12004,4.23,2.94,Questionable
+1159.36,9496,9494.82,6.34,Clear Peak
+1201.59,3003,3001.78,2.06,Highly Questionable
+1204.82,3449,3447.72,4.36,Clear Peak
+1222.87,77946,2.68,35.38,Clear Peak
+1234.99,2010,7.11,3.47,Clear Peak
+1248.1,70143,2.03,106.95,Clear Peak
+1261.05,3159,2.0,2.06,Highly Questionable
+1263.88,3320,3318.88,6.37,Clear Peak
+1267.9,1899,2.07,2.22,Highly Questionable
+1272.16,7454,7452.45,45.77,Clear Peak
+1279.29,7022,2.01,2.34,Highly Questionable
+1292.15,3761,3759.2,7.27,Clear Peak
+1305.33,24538,24536.62,2.04,Highly Questionable
+1336.49,2156,2.12,2.75,Questionable
+1369.75,15609,15607.9,2.47,Highly Questionable
+1461.04,16520,16518.89,2.11,Highly Questionable
+1466.13,7310,7308.84,6.28,Clear Peak
+1482.47,7947,7945.81,6.61,Clear Peak
+1491.19,65911,2.22,230.33,Clear Peak
+1547.18,1308,5.3,2.31,Highly Questionable
+1629.35,16303,16302.0,2.46,Highly Questionable
+1639.57,14045,14043.97,32.91,Clear Peak
+1646.85,5385,5384.01,3.98,Clear Peak
+1664.45,3309,3307.82,2.06,Highly Questionable
+1667.17,2965,2963.92,2.53,Questionable
+1684.05,13069,13067.89,2.1,Highly Questionable
+1707.07,3770,3768.91,2.98,Questionable
+1715.88,7813,7811.99,6.07,Clear Peak
+1733.29,23281,23279.95,2.47,Highly Questionable
+1776.78,1577,1575.98,7.0,Clear Peak
+1799.01,3438,2.19,6.85,Clear Peak
+1815.7,6184,6182.94,2.9,Questionable
+1821.95,1232,2.62,6.77,Clear Peak
+1891.36,10311,2.26,319.41,Clear Peak
+1913.71,25526,25524.91,62.75,Clear Peak
+1928.89,6443,6441.94,53.13,Clear Peak
+1975.66,1312,1311.0,6.02,Clear Peak
+1988.41,17050,2.38,7.06,Clear Peak
+1998.22,37953,37951.92,39.72,Clear Peak
+2015.22,2230,2228.55,2.86,Questionable
+2023.0,3847,3845.88,2.92,Questionable
+2066.37,584,2.77,2.54,Questionable
+2082.14,1519,1517.9,18.61,Clear Peak
+2089.44,13747,4.85,26.42,Clear Peak
+2097.36,3012,3010.94,25.51,Clear Peak
+2119.99,489,487.48,5.37,Clear Peak
+2130.74,801,2.67,11.6,Clear Peak
+2173.08,324234,324232.98,10.9,Clear Peak
+2253.31,5017,2.19,108.98,Clear Peak
+2266.93,37849,37847.98,197299.29000000132
+2299.4,38151,38149.94,7.95,Clear Peak
+2360.84,902,2.11,9.54,Clear Peak
+2393.33,6164,6162.89,81.81,Clear Peak
+2428.68,5798,5796.98,2.49,Highly Questionable
+2456.35,3168,3167.0,3.78,Clear Peak
+2472.23,4337,2.59,44.52,Clear Peak
+2483.18,12035,2.2,13.96,Clear Peak
+2494.49,2780,2778.96,2.25,Highly Questionable
+2510.83,5137,2.29,10.6,Clear Peak
+2525.88,56788,56786.97,35.79,Clear Peak
+2646.93,3911,3909.92,4.21,Clear Peak
+2664.8,7927,7925.99,19.01,Clear Peak
+2694.49,578,36.73,2.11,Highly Questionable
+2709.39,1715,2.06,2.82,Questionable
+2717.73,3804,3802.88,3.9,Clear Peak
+2754.71,33553,33551.97,16.47,Clear Peak
+2792.3,2402,2400.93,5.28,Clear Peak
+2838.31,5778,5776.98,7.15,Clear Peak

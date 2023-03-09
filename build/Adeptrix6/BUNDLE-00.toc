@@ -1,3 +1,0 @@
-([('Adeptrix6',
-   '/Users/emraan.adem/Documents/GitHub/Adeptrix/dist/Adeptrix6',
-   'EXECUTABLE')],)
