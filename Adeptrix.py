@@ -1010,8 +1010,6 @@ class Adeptrix:
         #plotting the results
         plottt = plt.figure(figsize = (8,8))
         scorer = plottt.add_subplot(1,1,1)
-        print(filtered_label0)
-        print(filtered_label1)
         for index,row in filtered_label0.iterrows():
             scorer.scatter(row["x"], row["y"], color = "red")
             scorer.annotate(row["Target"], xy = (row["x"], row["y"]))

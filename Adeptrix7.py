@@ -31,7 +31,7 @@ from PyInstaller.utils.hooks import collect_data_files, eval_statement
 datas = collect_data_files('tkinterDnD2')
 
 class Adeptrix:
-
+    
     datamini = []
     PCAlist = {}
     peaks = []
@@ -199,7 +199,6 @@ class Adeptrix:
                 templist.append(peak)
             templist.sort()
         Adeptrix.negpeaks = templist
-    
 
     @staticmethod
     def cropping(filelist):
@@ -222,24 +221,6 @@ class Adeptrix:
                     row[0] = round(float(row[0]), 2)
                     row[1] = int(float(row[1]))
                     data.append(row)
-            while data[len(data)-1][0] > Adeptrix.maxmass:
-                data = data[0:len(data)-1]
-            while data[0][0] < Adeptrix.minmass:
-                data = data[1:len(data)]
-            with open(file, 'w+') as filee:
-                for row in data:
-                    if row != data[len(data)-1]:
-                        filee.write(str(row[0])+" "+ str(row[1])+"\n")
-                    else:
-                        filee.write(str(row[0])+" "+ str(row[1]))
-        for file in filelist:
-            data = []
-            with open(file, 'r' ) as adep:
-                datas = csv.reader(adep, delimiter = ' ')
-                for row in datas:
-                    row[0] = round(float(row[0]), 2)
-                    row[1] = int(float(row[1]))
-                    data.append(row)
             while len(data) > minval:
                 data = data[0:len(data)-1]
             with open(file, 'w+') as filee:
@@ -248,7 +229,7 @@ class Adeptrix:
                         filee.write(str(row[0])+" "+ str(row[1])+"\n")
                     else:
                         filee.write(str(row[0])+" "+ str(row[1]))
-            
+    
     @staticmethod
     def compare():
         Adeptrix.finalallpeaks = []
@@ -383,11 +364,11 @@ class Adeptrix:
                             breakerpossur = True
                         if(data[data.index(peak[0:2])-num][1] < 0):
                             breakernegsur = True
-                        if((breakerpossur == False) and (poscount >= Adeptrix.peakpointcount)):
+                        if((breakerpossur == False) and (poscount >= 5)):
                             breakerpossur = True
                         if(breakerpossur == False):
                             surroundvalues.append(data[data.index(peak[0:2])+num])
-                        if((breakernegsur == False) and (negcount >= Adeptrix.peakpointcount)):
+                        if((breakernegsur == False) and (negcount >= 5)):
                             breakernegsur = True
                         if(breakernegsur == False):
                             surroundvalues.append(data[data.index(peak[0:2])-num])
@@ -448,13 +429,13 @@ class Adeptrix:
                         breakerpossur = True
                     if(data[data.index(peak[0:2])-num][1] < 0):
                         breakernegsur = True
-                    if((breakerpossur == False) and (poscount >= Adeptrix.peakpointcount)):
+                    if((breakerpossur == False) and (poscount >= 5)):
                         breakerpossur = True
                     if(breakerpossur == False):
                         surroundvalues.append(data[data.index(peak[0:2])+num])
                         if data[data.index(peak[0:2])+num] > peak[0:2]:
                             surroundgreater.append(data[data.index(peak[0:2])+num])
-                    if((breakernegsur == False) and (negcount >= Adeptrix.peakpointcount)):
+                    if((breakernegsur == False) and (negcount >= 5)):
                         breakernegsur = True
                     if(breakernegsur == False):
                         surroundvalues.append(data[data.index(peak[0:2])-num])
@@ -878,6 +859,15 @@ class Adeptrix:
         Adeptrix.finalclearpeaks = newlistclear
         Adeptrix.orange = newlistorange
         Adeptrix.red = newlistred
+
+        
+        #FILTER OUT PEAKS THAT ARE NOT IN MASS RANGE BELOW
+
+        Adeptrix.orange = filter(lambda mass: Adeptrix.minmass < mass[0] > Adeptrix.maxmass, Adeptrix.orange)
+        Adeptrix.red = filter(lambda mass: Adeptrix.minmass < mass[0] > Adeptrix.maxmass, Adeptrix.red)
+        Adeptrix.finalclearpeaks = filter(lambda mass: Adeptrix.minmass < mass[0] > Adeptrix.maxmass, Adeptrix.finalclearpeaks)
+        
+        
         dict['Peaks for ' + Adeptrix.datafile]['Clear Peaks'] = Adeptrix.finalclearpeaks
         dict['Peaks for ' + Adeptrix.datafile]['Questionable Peaks'] = Adeptrix.orange
         dict['Peaks for ' + Adeptrix.datafile]['Highly Questionable Peaks'] = Adeptrix.red
@@ -1395,7 +1385,7 @@ class Adeptrix:
         integral = int(Adeptrix.maxintens/(2000))
         subdata = []
         pot_peak = []
-        for integ in range(Adeptrix.maxintens, 500, -integral):
+        for integ in range(Adeptrix.maxintens, Adeptrix.minintens, -integral):
             for stuff in data:
                 if(float(stuff[1]) >= integ-integral and float(stuff[1]) <= integ):
                     subdata.append(stuff)
@@ -1663,7 +1653,7 @@ class Gui:
             Adeptrix.flexval = Gui.textvarthree.get()
             Adeptrix.minmass = float(Gui.minmass.get())
             Adeptrix.maxmass = float(Gui.maxmass.get())
-            Adeptrix.minintens = float(Gui.minintens.get())
+            Adeptrix.minintens = int(Gui.minintens.get())
             if Adeptrix.negcontrolfile != '' and len(Adeptrix.datafiles) > 0:
                 label_analyzing = Label(Gui.window,
                                     text = "The results of your analysis will pop up in a new Window.",
@@ -1692,14 +1682,3 @@ Gui.begin()
 # make cut off variable for lowest intensity of peak to detect based on user input
 # make cut off variable for lowest mass ratio to detect based on user input
 # change ratio to some factor of peakshape so that it can single out more specific/borderline peaks such as 1709 and 2707
-
-
-# Line 957-958 makes no sense...
-
-# Naming system to make sure files are not duplicated
-
-# Add min/max range for peak selection
-
-# 1) Text file of post-peak data for RADX
-# 2) Find out why peak picking is messing up
-# 3) Narrow down reason for PCA analysis mix-up
