@@ -145,6 +145,61 @@ class Adeptrix:
             Adeptrix.datasplitter()
 
     @staticmethod
+    def importeralt():
+        if Adeptrix.flexval == "SmartFlex":
+            Adeptrix.peakpointcount = 5
+        else:
+            Adeptrix.peakpointcount = 10
+        from rpy2 import robjects
+        filelisttwo = []
+        masses = []
+        intens = []
+        robjects.r('library(MALDIquant)')
+        robjects.r('library(readBrukerFlexData)')
+        robjects.r("peaks <- readBrukerFlexDir('" + Adeptrix.negcontrolfile + "', removeCalibrationScans = FALSE, verbose = TRUE, useSpectraNames = FALSE)")
+        robjects.r("masses <- peaks[[1]]$spectrum$mass")
+        robjects.r("intensities <- peaks[[1]]$spectrum$intensity")
+        robjects.r('library(MALDIquantForeign)')
+        robjects.r("peaks <- importBrukerFlex('"+ Adeptrix.negcontrolfile + "')")
+        robjects.r('peaks <- alignSpectra(peaks)')
+        robjects.r("bSnip <- removeBaseline(peaks, method='TopHat')")
+        #robjects.r("bSnip <- alignSpectra(bSnip, halfWindowSize = 20, SNR = 2, tolerance = .002, warpingMethod = 'lowess'")
+        robjects.r("setClass('spec', slots = c(x='numeric', y='numeric'))")
+        robjects.r("myspec <- new('spec', x = (bSnip[[1]]@mass), y = (bSnip[[1]]@intensity))")
+        robjects.r('str(myspec)')
+        robjects.r('''S4_to_dataframe <- function(s4obj) {nms <- slotNames(s4obj)
+        lst <- lapply(nms, function(nm) slot(s4obj, nm))
+        as.data.frame(setNames(lst, nms))}''')
+        robjects.r("myspec <- S4_to_dataframe(myspec)")
+        robjects.r("write.table(myspec, file = '" + Adeptrix.negcontrolfile + ".txt" +"', sep = ' ', row.names = FALSE, col.names = FALSE)")
+        for folders in Adeptrix.datafiles:
+            intens = []
+            masses = []
+            robjects.r("peaks <- readBrukerFlexDir('" + str(folders) + "', removeCalibrationScans = FALSE, verbose = TRUE, useSpectraNames = FALSE)")
+            robjects.r("masses <- peaks[[1]]$spectrum$mass")
+            robjects.r("intensities <- peaks[[1]]$spectrum$intensity")
+            robjects.r('library(MALDIquantForeign)')
+            robjects.r("peaks <- importBrukerFlex('"+ str(folders) + "')")
+            robjects.r('peaks <- alignSpectra(peaks)')
+            robjects.r("bSnip <- removeBaseline(peaks, method='TopHat')")
+            #robjects.r("bSnip <- alignSpectra(bSnip, halfWindowSize = 20, SNR = 2, tolerance = .002, warpingMethod = 'lowess'")
+            robjects.r("setClass('spec', slots = c(x='numeric', y='numeric'))")
+            robjects.r("myspec <- new('spec', x = (bSnip[[1]]@mass), y = (bSnip[[1]]@intensity))")
+            robjects.r('str(myspec)')
+            robjects.r('''S4_to_dataframe <- function(s4obj) {nms <- slotNames(s4obj)
+            lst <- lapply(nms, function(nm) slot(s4obj, nm))
+            as.data.frame(setNames(lst, nms))}''')
+            robjects.r("myspec <- S4_to_dataframe(myspec)")
+            robjects.r("write.table(myspec, file = '" + str(folders) + ".txt" +"', sep = ' ', row.names = FALSE, col.names = FALSE)")
+            Adeptrix.datafile = str(folders) + '.txt'
+            filelisttwo.append(Adeptrix.datafile)
+        Adeptrix.datafiles = filelisttwo
+        Adeptrix.cropping(Adeptrix.datafiles)
+        for item in Adeptrix.datafiles:
+            Adeptrix.datafile = item
+            Adeptrix.datasplitter()
+
+    @staticmethod
     def negcontrolfilter():
         import os
         # assign directory
@@ -229,7 +284,75 @@ class Adeptrix:
                         filee.write(str(row[0])+" "+ str(row[1])+"\n")
                     else:
                         filee.write(str(row[0])+" "+ str(row[1]))
+
+    @staticmethod
+    def comparealt():
+        Adeptrix.finalallpeaks = []
+        for peak in Adeptrix.allpeaks:
+            for peaks in Adeptrix.negdata:
+                if abs(peak[0] - peaks[0]) < .5:
+                    if peaks[1]/peak[1] > .6:
+                        Adeptrix.removepeaks.append(peak)
+                    elif peaks[1]/peak[1] <= .6 and peaks[1]/peak[1] >= .3:
+                        Adeptrix.possrempeaks.append(peak)
+        Adeptrix.rawdata.sort()
+        maxmass = Adeptrix.rawdata[-1][0]
+        iterations = int(maxmass/2000) + 1
+        buffer = 50
+        indexcount = 0
+        for vals in range (0, iterations):
+            indexcount2 = vals*2000
+            indexcount = indexcount2 + buffer
+            if ((vals+1)*2000 + 20 < len(Adeptrix.rawdata)):
+                threading.Thread(target = Adeptrix.peakrebound, args = [Adeptrix.possrempeaks, 
+                    Adeptrix.rawdata[indexcount-50:(vals+1)*2000 + 20], Adeptrix.negdata[indexcount:(vals+1)*2000 + 20]]).start()
+                indexcount = vals*2000
+            else:
+                threading.Thread(target = Adeptrix.peakrebound, args = [Adeptrix.possrempeaks, 
+                    Adeptrix.rawdata[indexcount-50:-1], Adeptrix.negdata[indexcount:-1]]).start()
+        for thread in threading.enumerate():
+            if thread != threading.enumerate()[0]:
+                if thread != threading.current_thread():
+                    thread.join()
+        for peak in Adeptrix.allpeaks:
+            for peaks in Adeptrix.allpeaks:
+                if peak[0] == peaks[0]:
+                    if len(peak) < len(peaks):
+                        Adeptrix.removepeaks.append(peak)
+                    if len(peaks) < len(peak):
+                        Adeptrix.removepeaks.append(peaks)
+        for peak in Adeptrix.ratios:
+            for peaks in Adeptrix.ratios:
+                if peak[0] == peaks[0]:
+                    if len(peak) < len(peaks):
+                        Adeptrix.removepeaks.append(peak)
+                    if len(peaks) < len(peak):
+                        Adeptrix.removepeaks.append(peaks)
+        for peak in Adeptrix.orange:
+            for peaks in Adeptrix.orange:
+                if peak[0] == peaks[0]:
+                    if len(peak) < len(peaks):
+                        Adeptrix.removepeaks.append(peak)
+                    if len(peaks) < len(peak):
+                        Adeptrix.removepeaks.append(peaks)
+        for peak in Adeptrix.red:
+            for peaks in Adeptrix.red:
+                if peak[0] == peaks[0]:
+                    if len(peak) < len(peaks):
+                        Adeptrix.removepeaks.append(peak)
+                    if len(peaks) < len(peak):
+                        Adeptrix.removepeaks.append(peaks)
+        Adeptrix.red = [list(t) for t in set(tuple(element) for element in Adeptrix.red)]
+        Adeptrix.orange = [list(t) for t in set(tuple(element) for element in Adeptrix.orange)]
+        Adeptrix.finalclearpeaks = [list(t) for t in set(tuple(element) for element in Adeptrix.finalclearpeaks)]
+        Adeptrix.finalallpeaks = [list(t) for t in set(tuple(element) for element in Adeptrix.finalallpeaks)]
+        Adeptrix.red.sort()
+        Adeptrix.orange.sort()
+        Adeptrix.finalclearpeaks.sort()
+        Adeptrix.finalallpeaks.sort()
+        Adeptrix.allpeaks.sort()
     
+
     @staticmethod
     def compare():
         Adeptrix.finalallpeaks = []
@@ -625,6 +748,7 @@ class Adeptrix:
                                                 negintegral.append(val*peakss[1])
                                     peaker = list(Adeptrix.signalnoise(peak, data))
                                     if len(peakintegral) > 0 and len(negintegral) > 0:
+                                        peaker.append(round(peakintegral[-1], 2))
                                         peaker.append(round(peakintegral[-1]/negintegral[-1], 2))
                                     elif len(peakintegral) > 0:
                                         peaker.append(peakintegral[-1])
@@ -759,6 +883,7 @@ class Adeptrix:
                                                 negintegral.append(val*peakss[1])
                                     peaker = list(Adeptrix.signalnoise(peak, data))
                                     if len(peakintegral) > 0 and len(negintegral) > 0:
+                                        peaker.append(round(peakintegral[-1], 2))
                                         peaker.append(round(peakintegral[-1]/negintegral[-1], 2))
                                     elif len(peakintegral) > 0:
                                         peaker.append(peakintegral[-1])
@@ -886,7 +1011,7 @@ class Adeptrix:
         dict5 = {}
         dict5['All Peaks'] = newlisttot
         dict6 = dict5['All Peaks']
-        cols = ['Mass/Charge Ratio', 'Intensity', 'Signal/Noise Ratio', 'Intensity Ratio', 'Peak Confidence']
+        cols = ['Mass/Charge Ratio', 'Intensity', 'Signal/Noise Ratio', 'Integral', 'Intensity Ratio', 'Peak Confidence']
         if os.path.exists("./Peak Images/" + str(Adeptrix.filename)):
             csv_file = "./Peak Images/" + str(Adeptrix.filename) + "/PeakDataTable.csv"            
         else:
@@ -926,6 +1051,186 @@ class Adeptrix:
         Adeptrix.filteredpeaks = []     
         Adeptrix.finalallpeaks = []
         Adeptrix.removepeaks = [] 
+
+    @staticmethod
+    def datasplitteralt():
+        Adeptrix.filename = Adeptrix.datafile.split("/")[-1]
+        Adeptrix.filename = str(Adeptrix.filename.split(".")[0])
+        rowcount = 0
+        directories = str(os.getcwd()) + '/Radx_data_8_24/Mutants/Sample Stuff/Peak Data'
+        Adeptrix.loader()
+        with open(Adeptrix.datafile, 'r' ) as adep:
+            datas = list(csv.reader(adep, delimiter = ' '))
+            for row in datas:
+                rowcount += 1
+        rowcount2 = int(rowcount/2000 + 1)
+        numthree = 0
+        intensities = []
+        for row in Adeptrix.rawdata:
+            intensities.append(float(row[1]))
+        Adeptrix.maxintens = int(max(intensities))
+        for num in range(0, rowcount2):
+            data = []
+            for numtwo in range(0, 2000):
+                if(numthree < rowcount):
+                    data.append([round(float(datas[numthree][0]), 2), float(datas[numthree][1])])
+                    numthree += 1
+            t = threading.Thread(target=Adeptrix.controllarge, args = [data]).start()
+        for t in threading.enumerate():
+            if t != threading.enumerate()[0]:
+                if t != threading.current_thread():
+                    t.join()
+        Adeptrix.allpeaks.sort()
+        templist = []
+        for peak in Adeptrix.allpeaks:
+            if peak not in templist:
+                templist.append(peak)
+        templist.sort()
+        Adeptrix.allpeaks = templist
+        Adeptrix.comparealt()
+        dict = {}
+        dict['Peaks for ' + Adeptrix.datafile] = {}
+        newlistclear = []
+        newlistorange = []
+        newlistred = []
+        for item in Adeptrix.finalclearpeaks:
+            newlistclear.append(list(dict.fromkeys(item)))
+        for item in Adeptrix.orange:
+            newlistorange.append(list(dict.fromkeys(item)))
+        for item in Adeptrix.red:
+            newlistred.append(list(dict.fromkeys(item)))
+        Adeptrix.finalclearpeaks = newlistclear
+        Adeptrix.orange = newlistorange
+        Adeptrix.red = newlistred
+
+        
+        #FILTER OUT PEAKS THAT ARE NOT IN MASS RANGE BELOW
+
+        Adeptrix.orange = filter(lambda mass: Adeptrix.minmass < mass[0] > Adeptrix.maxmass, Adeptrix.orange)
+        Adeptrix.red = filter(lambda mass: Adeptrix.minmass < mass[0] > Adeptrix.maxmass, Adeptrix.red)
+        Adeptrix.finalclearpeaks = filter(lambda mass: Adeptrix.minmass < mass[0] > Adeptrix.maxmass, Adeptrix.finalclearpeaks)
+        
+        
+        dict['Peaks for ' + Adeptrix.datafile]['Clear Peaks'] = Adeptrix.finalclearpeaks
+        dict['Peaks for ' + Adeptrix.datafile]['Questionable Peaks'] = Adeptrix.orange
+        dict['Peaks for ' + Adeptrix.datafile]['Highly Questionable Peaks'] = Adeptrix.red
+        newlisttot = []
+        newlisttot.extend(newlistclear)
+        newlisttot.extend(newlistorange)
+        newlisttot.extend(newlistred)
+        for peak in newlisttot:
+            for peaks in newlisttot:
+                if peak[0] == peaks[0]:
+                    if len(peak) < len(peaks):
+                        newlisttot.remove(peak)
+                    if len(peaks) < len(peak):
+                        newlisttot.remove(peaks)
+        newlisttot.sort(key=lambda x: x[0], reverse=False)
+        dict5 = {}
+        dict5['All Peaks'] = newlisttot
+        dict6 = dict5['All Peaks']
+        cols = ['Mass/Charge Ratio', 'Intensity', 'Signal/Noise Ratio', 'Integral', 'Intensity Ratio', 'Peak Confidence']
+        if os.path.exists("./Peak Images/" + str(Adeptrix.filename)):
+            csv_file = "./Peak Images/" + str(Adeptrix.filename) + "/PeakDataTable.csv"            
+        else:
+            os.makedirs("./Peak Images/" + str(Adeptrix.filename))
+            csv_file = "./Peak Images/" + str(Adeptrix.filename) + "/PeakDataTable.csv"
+        with open(csv_file, 'w') as adep:
+            try:
+                write = csv.writer(adep)
+                write.writerow(cols)
+                write.writerows(dict6)
+            except IOError:
+                print("I/O error")
+        if(len(Adeptrix.finalallpeaks) > 0):
+            print("Peaks have been uploaded to the appropriate subfolder in the Peak Images folder.")
+            # Develop dictionary to get more specific to mutations and amino acid sequences as program develops further
+        else:
+            print('No Peaks have been found.')
+        Adeptrix.plot()
+        for row in Adeptrix.rawdata:
+            Adeptrix.masses.append(row[0])
+            Adeptrix.intensities.append(row[1])
+            Adeptrix.tag.append(Adeptrix.datafile.split("/")[-1].split('.')[0])
+        Adeptrix.datas['Masses'] = Adeptrix.masses
+        Adeptrix.datas['Intensities'] = Adeptrix.intensities
+        Adeptrix.datas['Target'] = Adeptrix.tag
+        Adeptrix.totaldatas = Adeptrix.datas
+        Adeptrix.datamini = []
+        Adeptrix.rawdata = []
+        Adeptrix.red = []
+        Adeptrix.orange = []
+        Adeptrix.finalclearpeaks = []
+        Adeptrix.possrempeaks = []
+        Adeptrix.peaks = []
+        Adeptrix.gendata = []
+        Adeptrix.maxintens = 0
+        Adeptrix.allpeaks = []
+        Adeptrix.filteredpeaks = []     
+        Adeptrix.finalallpeaks = []
+        Adeptrix.removepeaks = [] 
+
+    @staticmethod
+    def combiner():
+        dataset = []
+        datasets = []
+        subsets = []
+        for item in os.listdir('./Peak Images/'):
+            subsets = []
+            if os.path.isdir('./Peak Images/' + item):
+                for items in os.listdir('./Peak Images/' + item):
+                    if items.endswith('.csv'):
+                        with open('./Peak Images/'+ item + '/' + items, 'r') as file:
+                            reader = csv.reader(file)
+                            for row in reader:
+                                if row[0] != "Mass/Charge Ratio":
+                                    subsets.append([float(row[0]), float(row[1]), float(row[2]), float(row[3])])
+                            for row in subsets:
+                                datasets.append([row[0], row[1], row[2], row[3], item.split("_")[len(item.split("_"))-1] + " " + item.split("_")[len(item.split("_"))-6]])
+                                dataset.append([row[0], row[1], row[2], row[3], item.split("_")[len(item.split("_"))-1] + " " + item.split("_")[len(item.split("_"))-6]])
+        anovas = []
+        kruskals = []
+        mannwhit = []
+        peaks = {}
+        test = pd.DataFrame(datasets)
+        test.columns =['Masses', 'Intensities', 'S/N Ratio', 'AUC', 'Target']
+        lisss = datasets
+        targerrr = test.loc[:,['Target']].values
+        targerrrtwo = list(np.unique(targerrr))
+        categorylist = ['Intensity', 'S/N Ratio', 'AUC']
+        listofstuff = ['Masses']
+        for vals in categorylist:
+            for val in targerrrtwo:
+                listofstuff.append(str(val) + " " + str(vals))
+        testflipped = pd.DataFrame(columns=listofstuff)
+        for index, row in test.iterrows():
+            for columnName, columnData in testflipped.iteritems():
+                if row['Target'] in columnName:
+                    intensity = row["Intensities"]
+                    snratio = row['S/N Ratio']
+                    auc = row['AUC']
+                    rowid = len(testflipped.index)
+                    filler = [row["Masses"]]
+                    for num in range(0, len(listofstuff)-1):
+                        filler.append(0)
+                    testflipped.loc[len(testflipped.index)] = filler
+                    if "Intensity" in columnName:
+                        testflipped.iloc[rowid][columnName] = intensity
+                    if "S/N Ratio" in columnName:
+                        testflipped.iloc[rowid][columnName] = snratio
+                    if "AUC" in columnName:
+                        testflipped.iloc[rowid][columnName] = auc
+        for index, row in testflipped.iterrows():
+            for indextwo, rowtwo in testflipped.iterrows():
+                if (row["Masses"] < rowtwo["Masses"] + .5) and (row["Masses"] > rowtwo["Masses"] - .5):
+                    for col in row.iteritems():
+                        if col[0] != "Masses":
+                            if col[1] == 0 and testflipped.iloc[indextwo][col[0]] != 0:
+                                testflipped.iloc[index][col[0]] = testflipped.iloc[indextwo][col[0]]
+                                testflipped.iloc[index]["Masses"] = testflipped.iloc[indextwo]["Masses"]
+        testflipped = testflipped.drop_duplicates()
+        testflipped.to_csv('Combined Data Sheet.csv', sep = '\t')
+
 
     @staticmethod
     def statistics():
@@ -1006,7 +1311,7 @@ class Adeptrix:
         kruskalsdf = pd.DataFrame.from_dict(kruskalsdata)
         mannwhitdf = pd.DataFrame.from_dict(mannwhitdata)
         """
-        pcas = PCA(n_components=len(targerrrtwo)+1)
+        pcas = PCA(n_components=2)
         features = listofstuff
         totaldatass = testflipped
         x = totaldatass.loc[:, features].values
@@ -1015,7 +1320,7 @@ class Adeptrix:
         x = StandardScaler(with_mean=False).fit_transform(x)
         principalComponents = pcas.fit_transform(x)
         pcas.fit(x)
-        principalDf = pd.DataFrame(data = principalComponents, columns = targerrr)
+        principalDf = pd.DataFrame(data = principalComponents, columns = ['Principal Component 1', 'Principal Component 2'])
         fig = plt.figure(figsize = (8,8))
         figtwo = plt.figure(figsize = (8,8))
         figthree = plt.figure(figsize = (8,8))
@@ -1031,17 +1336,27 @@ class Adeptrix:
         dictstuff = {}
         listofpoints = []
         targetcounter = []
+        groups = []
+        for num in range(0, len(targerrr)):
+            groups.append(0)
+        lastcount = 0
+        pointer = 0
         for target in targerrr:
+            count = 0
             listofpointers = []
+            pointer = lastcount
             if target != "Masses":
                 for index, row in principalDf.iterrows():
-                    for col in row.iteritems():
-                        if col[0] == target:
-                            listofpointers.append([row["Masses"], col[1]])
+                    if count < len(principalDf.index)/len(groups)+1 and pointer > lastcount:
+                        listofpointers.append([row[0], row[1]])
+                        count += 1
+                        lastcount = pointer
+                    pointer += 1
                 x = []
                 y = []
                 xval = 0
                 yval = 0
+                #print(listofpointers)
                 for row in listofpointers:
                     x.append(row[0])
                     y.append(row[1])
@@ -1053,6 +1368,7 @@ class Adeptrix:
                 yval = yval/len(y)
                 listofpoints.append([xval, yval])
                 targetcounter.append([[xval, yval], target])
+        #print(listofpoints)
         import matplotlib.colors as mcolors
         colorlist = list(mcolors.BASE_COLORS)
         colornum = 6
@@ -1491,8 +1807,15 @@ class Adeptrix:
 
     @staticmethod
     def start():
-        Adeptrix.importer()
-        Adeptrix.statistics()
+        #Adeptrix.importer()
+        Adeptrix.combiner()
+        #Adeptrix.statistics()
+
+    @staticmethod
+    def startalt():
+        #Adeptrix.importeralt()
+        Adeptrix.combiner()
+        #Adeptrix.statistics()
 
 class Gui:
     from tkinterdnd2 import Tk
@@ -1503,6 +1826,8 @@ class Gui:
     minintens = StringVar()
     minmass = StringVar()
     maxmass = StringVar()
+    textvarfour = StringVar()
+    neg = False
 
 
     def browseFileBackground(stringvar):
@@ -1624,6 +1949,9 @@ class Gui:
         Gui.textvarthree.set("SmartFlex")
         w = OptionMenu(Gui.window, Gui.textvarthree, "SmartFlex", "AutoFlex")
         w.pack()
+        Gui.textvarfour.set("With Background")
+        optionlist = OptionMenu(Gui.window, Gui.textvarfour, "With Background", "Without Background")
+        optionlist.pack()
         textvarone.set("Drop Background Files Here")
         textvartwo.set("Drop Sample Files Here")
         e_box = Entry(Gui.window, textvar=textvarone, width=80)
@@ -1648,6 +1976,8 @@ class Gui:
         Gui.maxmass.set("Set Maximum m/z Here")
         maxmass.pack()
         def starter():
+            if Gui.textvarfour.get() == "With Background":
+                Gui.neg = True
             Gui.browseFileBackground(Gui.var)
             Gui.browseFileSample(Gui.vartwo)
             Adeptrix.flexval = Gui.textvarthree.get()
@@ -1661,7 +1991,10 @@ class Gui:
                                     fg = "blue")
                 label_analyzing.pack()
                 Adeptrix.datafiles.sort()
-                t = threading.Thread(target=Adeptrix.start)
+                if Gui.neg:
+                    t = threading.Thread(target=Adeptrix.start)
+                else:
+                    t = threading.Thread(target=Adeptrix.startalt)
                 t.start()
                 t.join()
                 for items in Adeptrix.datafiles:
@@ -1678,7 +2011,7 @@ class Gui:
         Button(Gui.window, text = "Open Summary Window", command = Gui.openSummary).pack()
         Gui.window.mainloop()
 
-Gui.begin()
+Adeptrix.start()
 # make cut off variable for lowest intensity of peak to detect based on user input
 # make cut off variable for lowest mass ratio to detect based on user input
 # change ratio to some factor of peakshape so that it can single out more specific/borderline peaks such as 1709 and 2707
